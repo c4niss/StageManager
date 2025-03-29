@@ -19,6 +19,14 @@ namespace StageManager.Models
 
         public StagiaireStatus Status { get; set; } = StagiaireStatus.EnCour;
         public DemandeDeStage DemandeDeStage { get; internal set; }
-        public object? DemandeDeStageId { get; internal set; }
+        public int? DemandeDeStageId { get; set; }
+        public int? StageId { get; set; }
+        public Stage Stage { get; set; }
+        public int FicheEvaluationStagiaireId { get; set; }
+        public FicheEvaluationStagiaire FicheEvaluationStagiaire { get; set; }
+        public int FicheDePointageId { get; set; }
+        public FicheDePointage FicheDePointage { get; set; }
+        public int AttestationId { get; set; }
+        public Attestation Attestation { get; set; }
     }
 }

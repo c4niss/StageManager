@@ -2,6 +2,7 @@
 
 namespace StageManager.Models
 {
+
     public class DemandeDeStage
     {
         public enum StatusDemandeDeStage
@@ -17,8 +18,11 @@ namespace StageManager.Models
         [Required]
         public string cheminfichier { get; set; }
         [Required]
-        public StatusDemandeDeStage Statut { get; set; }  = StatusDemandeDeStage.EnCour;
+        public StatusDemandeDeStage Statut { get; set; } = StatusDemandeDeStage.EnCour;
         public List<Stagiaire> Stagiaires { get; set; }
+        public int? DemandeaccordId { get; set; }
+        public Demandeaccord Demandeaccord { get; set; }
+        public int? MembreDirectionId { get; set; }
+        public MembreDirection MembreDirection { get; set; }
 
-    }
-}
+    }}
