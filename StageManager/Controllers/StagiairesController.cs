@@ -71,31 +71,7 @@ namespace StageManager.Controllers
 
             return CreatedAtAction(nameof(GetStagiaire), new { id = stagiaire.Id }, stagiaire);
         }
-        [HttpPost]
-        [Route("login")]
-        public async Task<IActionResult> Login([FromBody] StagiaireloginDto stagiaireDto)
-        {
-            var stagiaire = await _db.Stagiaires.FirstOrDefaultAsync(s => s.Email == stagiaireDto.Email);
-            if (stagiaire == null)
-            {
-                return NotFound("Aucun utilisateur avec cet email.");
-            }
-
-            var passwordHasher = new PasswordHasher<Stagiaire>();
-            var result = passwordHasher.VerifyHashedPassword(null, stagiaire.MotDePasse, stagiaireDto.MotDePasse);
-
-            if (result != PasswordVerificationResult.Success)
-            {
-                return BadRequest("Mot de passe incorrect.");
-            }
-            var token = CreateToken(stagiaire);
-
-            return Ok(new
-            {
-                Token = token,
-                Stagiaire =stagiaire
-            });
-        }
+        
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateStagiaire([FromRoute]int id, [FromBody] StagiaireUpdateDto stagiaireDto)
         {
@@ -173,32 +149,6 @@ namespace StageManager.Controllers
             await _db.SaveChangesAsync();
             
             return Ok();
-        }
-
-
-        private string CreateToken(Stagiaire stagiaire)
-        {
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, stagiaire.Nom),
-                new Claim(ClaimTypes.NameIdentifier, stagiaire.Id.ToString()),
-                new Claim(ClaimTypes.Role, stagiaire.Role)
-            };
-
-            var key = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(_configuration["AppSettings:Token"]!));
-
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            var token = new JwtSecurityToken(
-                issuer: _configuration["AppSettings:Issuer"],
-                audience: _configuration["AppSettings:Audience"],
-                claims: claims,
-                expires: DateTime.Now.AddDays(1), // Expiration du token
-                signingCredentials: creds
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
         }
         [Authorize] 
         [HttpGet("/try")]
