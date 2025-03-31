@@ -8,7 +8,7 @@ namespace StageManager.DTO.DemandeaccordDTO
         public IFormFile FichePieceJointe { get; set; } // Pour upload de fichier
 
         [Required]
-        public int StagiaireId { get; set; }
+        public List<int> StagiaireId { get; set; }
 
         [Required]
         public int ThemeId { get; set; }

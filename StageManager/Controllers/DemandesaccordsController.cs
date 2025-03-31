@@ -1,5 +1,4 @@
-﻿
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StageManager.DTO.DemandeaccordDTO;
 using StageManager.Models;
@@ -26,7 +25,7 @@ namespace StageManager.Controllers
         public async Task<ActionResult<IEnumerable<DemandeaccordDto>>> GetDemandesAccord()
         {
             var demandes = await _context.DemandesAccord
-                .Include(d => d.Stagiaire)
+                .Include(d => d.stagiaires)
                 .Include(d => d.Theme)
                 .Include(d => d.Encadreur)
                 .ToListAsync();
@@ -36,8 +35,8 @@ namespace StageManager.Controllers
                 Id = d.Id,
                 FichePieceJointe = d.FichePieceJointe,
                 Status = d.Status,
-                StagiaireId = d.StagiareId,
-                StagiaireNomComplet = $"{d.Stagiaire?.Nom} {d.Stagiaire?.Prenom}",
+                StagiaireId = d.stagiaires.Select(s => s.Id).ToList(),
+                StagiaireNomComplet = string.Join(", ", d.stagiaires.Select(s => $"{s.Nom} {s.Prenom}")),
                 ThemeId = d.ThemeId,
                 ThemeNom = d.Theme?.Nom,
                 EncadreurId = d.EncadreurId,
@@ -50,7 +49,7 @@ namespace StageManager.Controllers
         public async Task<ActionResult<DemandeaccordDto>> GetDemandeaccord(int id)
         {
             var demandeaccord = await _context.DemandesAccord
-                .Include(d => d.Stagiaire)
+                .Include(d => d.stagiaires)
                 .Include(d => d.Theme)
                 .Include(d => d.Encadreur)
                 .FirstOrDefaultAsync(d => d.Id == id);
@@ -65,8 +64,8 @@ namespace StageManager.Controllers
                 Id = demandeaccord.Id,
                 FichePieceJointe = demandeaccord.FichePieceJointe,
                 Status = demandeaccord.Status,
-                StagiaireId = demandeaccord.StagiareId,
-                StagiaireNomComplet = $"{demandeaccord.Stagiaire?.Nom} {demandeaccord.Stagiaire?.Prenom}",
+                StagiaireId = demandeaccord.stagiaires.Select(s => s.Id).ToList(),
+                StagiaireNomComplet = string.Join(", ", demandeaccord.stagiaires.Select(s => $"{s.Nom} {s.Prenom}")),
                 ThemeId = demandeaccord.ThemeId,
                 ThemeNom = demandeaccord.Theme?.Nom,
                 EncadreurId = demandeaccord.EncadreurId,
@@ -78,22 +77,30 @@ namespace StageManager.Controllers
         [HttpPost]
         public async Task<ActionResult<DemandeaccordDto>> CreateDemandeaccord([FromForm] CreateDemandeaccordDto dto)
         {
-            // Vérifications des entités
-            var stagiaire = await _context.Stagiaires.FindAsync(dto.StagiaireId);
-            if (stagiaire == null)
+            // Vérification des stagiaires
+            var stagiaires = new List<Stagiaire>();
+            foreach (var stagiaireId in dto.StagiaireId)
             {
-                return BadRequest("Stagiaire non trouvé");
+                var stagiaire = await _context.Stagiaires.FindAsync(stagiaireId);
+                if (stagiaire == null)
+                {
+                    return BadRequest($"Stagiaire avec l'ID {stagiaireId} non trouvé");
+                }
+                stagiaires.Add(stagiaire);
             }
 
+            // Vérification du thème
             var theme = await _context.Themes.FindAsync(dto.ThemeId);
             if (theme == null)
             {
                 return BadRequest("Thème non trouvé");
             }
 
+            // Vérification de l'encadreur si fourni
+            Encadreur encadreur = null;
             if (dto.EncadreurId.HasValue)
             {
-                var encadreur = await _context.Encadreurs.FindAsync(dto.EncadreurId);
+                encadreur = await _context.Encadreurs.FindAsync(dto.EncadreurId);
                 if (encadreur == null)
                 {
                     return BadRequest("Encadreur non trouvé");
@@ -105,7 +112,7 @@ namespace StageManager.Controllers
             if (dto.FichePieceJointe != null)
             {
                 string uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "demandes");
-                Directory.CreateDirectory(uploadsFolder); // Assurez-vous que le dossier existe
+                Directory.CreateDirectory(uploadsFolder);
 
                 uniqueFileName = Guid.NewGuid().ToString() + "_" + dto.FichePieceJointe.FileName;
                 string filePath = Path.Combine(uploadsFolder, uniqueFileName);
@@ -121,12 +128,10 @@ namespace StageManager.Controllers
             {
                 FichePieceJointe = uniqueFileName,
                 Status = StatusAccord.EnAttente,
-                StagiareId = dto.StagiaireId,
+                stagiaires = stagiaires,
                 ThemeId = dto.ThemeId,
                 EncadreurId = dto.EncadreurId,
-                // Remarque : DemandeStageId doit être défini, mais il n'est pas dans votre DTO
-                // Vous devrez peut-être l'ajouter ou le gérer différemment
-                DemandeStageId = 0 // À remplacer par une valeur appropriée
+                DemandeStageId = 0 // À définir selon votre logique
             };
 
             _context.DemandesAccord.Add(demandeaccord);
@@ -140,11 +145,12 @@ namespace StageManager.Controllers
                     Id = demandeaccord.Id,
                     FichePieceJointe = demandeaccord.FichePieceJointe,
                     Status = demandeaccord.Status,
-                    StagiaireId = demandeaccord.StagiareId,
-                    StagiaireNomComplet = $"{stagiaire.Nom} {stagiaire.Prenom}",
+                    StagiaireId = demandeaccord.stagiaires.Select(s => s.Id).ToList(),
+                    StagiaireNomComplet = string.Join(", ", demandeaccord.stagiaires.Select(s => $"{s.Nom} {s.Prenom}")),
                     ThemeId = demandeaccord.ThemeId,
                     ThemeNom = theme.Nom,
-                    EncadreurId = demandeaccord.EncadreurId
+                    EncadreurId = demandeaccord.EncadreurId,
+                    EncadreurNomComplet = encadreur != null ? $"{encadreur.Nom} {encadreur.Prenom}" : null
                 });
         }
 
@@ -159,8 +165,6 @@ namespace StageManager.Controllers
             }
 
             demandeaccord.Status = dto.Status;
-            // Gérer le commentaire si nécessaire (pas inclus dans votre modèle actuel)
-
             _context.DemandesAccord.Update(demandeaccord);
             await _context.SaveChangesAsync();
 

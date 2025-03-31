@@ -67,6 +67,11 @@ namespace TestRestApi.Data
                 .WithOne(d => d.Memoire)
                 .HasForeignKey<Memoire>(m => m.DemandeDepotMemoireId)
                 .OnDelete(DeleteBehavior.ClientNoAction);
+            modelBuilder.Entity<Demandeaccord>()
+                .HasMany(d => d.stagiaires)
+                .WithOne(s => s.Demandeaccord)
+                .HasForeignKey(s => s.DemandeaccordId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
 
     }

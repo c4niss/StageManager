@@ -13,7 +13,7 @@ namespace StageManager.DTO.DemandeaccordDTO
         [EnumDataType(typeof(StatusAccord))]
         public StatusAccord Status { get; set; }
 
-        public int StagiaireId { get; set; }
+        public List<int> StagiaireId { get; set; }
         public string StagiaireNomComplet { get; set; }
 
         public int ThemeId { get; set; }

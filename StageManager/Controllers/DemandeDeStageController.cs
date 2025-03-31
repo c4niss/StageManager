@@ -1,6 +1,9 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using MailKit.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MimeKit.Text;
+using MimeKit;
 using StageManager.DTO.DemandeDeStageDTO;
 using StageManager.Mapping;
 using StageManager.Models;
@@ -8,6 +11,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using TestRestApi.Data;
+using System.Net.Mail;
+using MailKit.Net.Smtp;
 
 namespace StageManager.Controllers
 {
@@ -16,10 +21,12 @@ namespace StageManager.Controllers
     public class DemandeDeStageController : ControllerBase
     {
         private readonly AppDbContext _db;
+        private readonly IConfiguration _config;
 
-        public DemandeDeStageController(AppDbContext db)
+        public DemandeDeStageController(AppDbContext db, IConfiguration config)
         {
             _db = db;
+            _config = config;
         }
 
         [HttpGet]
@@ -153,12 +160,10 @@ namespace StageManager.Controllers
         [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateDemandeDeStageStatus(int id, [FromBody] DemandeDeStageUpdateStatusDto updateDto)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            var demande = await _db.DemandesDeStage
+                .Include(d => d.Stagiaires)
+                .FirstOrDefaultAsync(d => d.Id == id);
 
-            var demande = await _db.DemandesDeStage.FindAsync(id);
             if (demande == null)
             {
                 return NotFound("Demande de stage non trouvée.");
@@ -168,9 +173,46 @@ namespace StageManager.Controllers
 
             if (demande.Statut == DemandeDeStage.StatusDemandeDeStage.Accepte)
             {
+                var existingAccord = await _db.DemandesAccord
+                    .FirstOrDefaultAsync(a => a.DemandeStageId == demande.Id);
+
+                Demandeaccord demandeAccord;
+
+                if (existingAccord == null)
+                {
+                    demandeAccord = new Demandeaccord
+                    {
+                        FichePieceJointe = "default_template.pdf",
+                        Status = StatusAccord.EnAttente,
+                        DemandeStageId = demande.Id,
+
+                        stagiaires = new List<Stagiaire>()
+                    };
+                    _db.DemandesAccord.Add(demandeAccord);
+                }
+                else
+                {
+                    demandeAccord = existingAccord;
+                }
+
                 foreach (var stagiaire in demande.Stagiaires)
                 {
                     stagiaire.Status = StagiaireStatus.Accepte;
+
+                    if (!demandeAccord.stagiaires.Contains(stagiaire))
+                    {
+                        demandeAccord.stagiaires.Add(stagiaire);
+                    }
+
+                    // Envoi d'email d'acceptation
+                    await EnvoyerEmailAsync(
+                        stagiaire.Email,
+                        "Demande de stage acceptée",
+                        $"Bonjour {stagiaire.Prenom},\n\n" +
+                        $"Votre demande de stage n°{demande.Id} a été acceptée.\n" +
+                        "Vous pouvez maintenant compléter votre dossier d'accord en cliquant sur le lien suivant :\n" +
+                        $"{GetAccordFormLink(demandeAccord.Id)}\n\n" +
+                        "Cordialement,\nLe service des stages");
                 }
             }
             else if (demande.Statut == DemandeDeStage.StatusDemandeDeStage.Refuse)
@@ -178,13 +220,53 @@ namespace StageManager.Controllers
                 foreach (var stagiaire in demande.Stagiaires)
                 {
                     stagiaire.Status = StagiaireStatus.Refuse;
+
+                    // Envoi d'email de refus
+                    await EnvoyerEmailAsync(
+                        stagiaire.Email,
+                        "Demande de stage refusée",
+                        $"Bonjour {stagiaire.Prenom},\n\n" +
+                        "Nous regrettons de vous informer que votre demande de stage n'a pas été retenue.\n" +
+                        "Pour plus d'informations, vous pouvez contacter le service des stages.\n\n" +
+                        "Cordialement,\nLe service des stages");
                 }
             }
-            await _db.SaveChangesAsync();
 
+            await _db.SaveChangesAsync();
             return Ok(demande.ToDto());
         }
 
+        private async Task EnvoyerEmailAsync(string destinataire, string sujet, string corps)
+        {
+            var email = new MimeMessage();
+            email.From.Add(new MailboxAddress("Service des Stages", _config["Email:From"]));
+            email.To.Add(new MailboxAddress("", destinataire));
+            email.Subject = sujet;
+
+            email.Body = new TextPart(TextFormat.Plain)
+            {
+                Text = corps
+            };
+
+            using var client = new MailKit.Net.Smtp.SmtpClient();
+
+            await client.ConnectAsync(
+                _config["Email:Host"],
+                int.Parse(_config["Email:Port"]),
+                SecureSocketOptions.StartTls);
+
+            await client.AuthenticateAsync(
+                _config["Email:Username"],
+                _config["Email:Password"]);
+
+            await client.SendAsync(email);
+            await client.DisconnectAsync(true);
+        }
+
+        private string GetAccordFormLink(int accordId)
+        {
+            return $"{_config["Frontend:BaseUrl"]}/accord/{accordId}/completer";
+        }
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDemandeDeStage(int id)
         {
@@ -208,5 +290,6 @@ namespace StageManager.Controllers
 
             return NoContent();
         }
+
     }
 }

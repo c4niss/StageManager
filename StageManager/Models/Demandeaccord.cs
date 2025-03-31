@@ -21,8 +21,7 @@ namespace StageManager.Models
 
         [Required]
         public StatusAccord Status { get; set; } = StatusAccord.EnAttente;
-        public int StagiareId { get; set; }
-        public Stagiaire Stagiaire { get; set; }
+        public List <Stagiaire> stagiaires { get; set; }
         [Required]
         public int ThemeId { get; set; }
         [Required]
