@@ -1,10 +1,13 @@
-﻿
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StageManager.DTO.ChefDepartementDTO;
 using StageManager.Models;
 using System.Threading.Tasks;
 using TestRestApi.Data;
+using System.Collections.Generic;
+using System.Linq;
+using System;
+using StageManager.Mapping;
 
 namespace StageManager.Controllers
 {
@@ -27,15 +30,7 @@ namespace StageManager.Controllers
                 .Include(c => c.Departement)
                 .ToListAsync();
 
-            return chefDeps.Select(c => new ChefDepartementDto
-            {
-                Id = c.Id,
-                Nom = c.Nom,
-                Prenom = c.Prenom,
-                Email = c.Email,
-                DepartementId = c.DepartementId,
-                DepartementNom = c.Departement?.Nom
-            }).ToList();
+            return chefDeps.Select(c => ChefDepartementMapping.ToDto(c)).ToList();
         }
 
         // GET: api/ChefDepartement/5
@@ -51,15 +46,7 @@ namespace StageManager.Controllers
                 return NotFound();
             }
 
-            return new ChefDepartementDto
-            {
-                Id = chefDepartement.Id,
-                Nom = chefDepartement.Nom,
-                Prenom = chefDepartement.Prenom,
-                Email = chefDepartement.Email,
-                DepartementId = chefDepartement.DepartementId,
-                DepartementNom = chefDepartement.Departement?.Nom
-            };
+            return ChefDepartementMapping.ToDto(chefDepartement);
         }
 
         // POST: api/ChefDepartement/assign
@@ -87,8 +74,24 @@ namespace StageManager.Controllers
                 var ancienChef = await _context.ChefDepartements.FindAsync(departement.ChefDepartementId);
                 if (ancienChef != null)
                 {
-                    // Logique pour retransformer le chef en encadreur
-                    // ...
+                    // Convertir l'ancien chef en encadreur
+                    var nouvelEncadreur = new Encadreur
+                    {
+                        Nom = ancienChef.Nom,
+                        Prenom = ancienChef.Prenom,
+                        Email = ancienChef.Email,
+                        Telephone = ancienChef.Telephone,
+                        MotDePasse = ancienChef.MotDePasse,
+                        Role = "Encadreur",
+                        EstActif = true,
+                        PhotoUrl = ancienChef.PhotoUrl,
+                        DepartementId = ancienChef.DepartementId,
+                        EstDisponible = true,
+                        StagiaireMax = 5
+                    };
+
+                    _context.Encadreurs.Add(nouvelEncadreur);
+                    _context.ChefDepartements.Remove(ancienChef);
                 }
             }
 
@@ -99,7 +102,7 @@ namespace StageManager.Controllers
                 Prenom = encadreur.Prenom,
                 Email = encadreur.Email,
                 Telephone = encadreur.Telephone,
-                MotDePasse = encadreur.MotDePasse, // idéalement, à gérer plus proprement
+                MotDePasse = encadreur.MotDePasse,
                 Role = "ChefDepartement",
                 EstActif = true,
                 PhotoUrl = encadreur.PhotoUrl,
@@ -132,16 +135,7 @@ namespace StageManager.Controllers
                 throw;
             }
 
-            // Retourner le chef nouvellement créé
-            return new ChefDepartementDto
-            {
-                Id = chefDepartement.Id,
-                Nom = chefDepartement.Nom,
-                Prenom = chefDepartement.Prenom,
-                Email = chefDepartement.Email,
-                DepartementId = chefDepartement.DepartementId,
-                DepartementNom = departement.Nom
-            };
+            return ChefDepartementMapping.ToDto(chefDepartement);
         }
     }
 }

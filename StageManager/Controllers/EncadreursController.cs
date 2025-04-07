@@ -1,8 +1,10 @@
-﻿
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StageManager.DTO.EncadreurDTO;
+using StageManager.Mapping;
 using StageManager.Models;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using TestRestApi.Data;
 
@@ -19,7 +21,7 @@ namespace StageManager.Controllers
             _context = context;
         }
 
-        // GET: api/Encadreur
+        // GET: api/Encadreurs
         [HttpGet]
         public async Task<ActionResult<IEnumerable<EncadreurDto>>> GetEncadreurs()
         {
@@ -28,23 +30,10 @@ namespace StageManager.Controllers
                 .Include(e => e.Stages)
                 .ToListAsync();
 
-            return encadreurs.Select(e => new EncadreurDto
-            {
-                Id = e.Id,
-                Nom = e.Nom,
-                Prenom = e.Prenom,
-                Email = e.Email,
-                Telephone = e.Telephone,
-                Fonction = e.Fonction,
-                EstDisponible = e.EstDisponible,
-                NbrStagiaires = e.NbrStagiaires,
-                StagiaireMax = e.StagiaireMax,
-                DepartementId = e.DepartementId,
-                DepartementNom = e.Departement?.Nom
-            }).ToList();
+            return encadreurs.Select(e => EncadreurMapping.ToDto(e)).ToList();
         }
 
-        // GET: api/Encadreur/5
+        // GET: api/Encadreurs/5
         [HttpGet("{id}")]
         public async Task<ActionResult<EncadreurDto>> GetEncadreur(int id)
         {
@@ -58,23 +47,10 @@ namespace StageManager.Controllers
                 return NotFound();
             }
 
-            return new EncadreurDto
-            {
-                Id = encadreur.Id,
-                Nom = encadreur.Nom,
-                Prenom = encadreur.Prenom,
-                Email = encadreur.Email,
-                Telephone = encadreur.Telephone,
-                Fonction = encadreur.Fonction,
-                EstDisponible = encadreur.EstDisponible,
-                NbrStagiaires = encadreur.NbrStagiaires,
-                StagiaireMax = encadreur.StagiaireMax,
-                DepartementId = encadreur.DepartementId,
-                DepartementNom = encadreur.Departement?.Nom
-            };
+            return EncadreurMapping.ToDto(encadreur);
         }
 
-        // POST: api/Encadreur
+        // POST: api/Encadreurs
         [HttpPost]
         public async Task<ActionResult<EncadreurDto>> CreateEncadreur(CreateEncadreurDto dto)
         {
@@ -95,44 +71,28 @@ namespace StageManager.Controllers
                 return BadRequest("Un compte avec cet email existe déjà");
             }
 
-            var encadreur = new Encadreur
-            {
-                Nom = dto.Nom,
-                Prenom = dto.Prenom,
-                Email = dto.Email,
-                Telephone = dto.Telephone,
-                MotDePasse = dto.MotDePasse, // À remplacer par un hash dans le cas réel
-                DepartementId = dto.DepartementId,
-                Role = "Encadreur",
-                EstActif = true,
-                Fonction = "Encadreur", // Valeur par défaut
-                EstDisponible = true,
-                NbrStagiaires = 0,
-                StagiaireMax = 3 // Valeur par défaut
-            };
+            // Utiliser le mapping pour convertir DTO en entité
+            var encadreur = EncadreurMapping.ToEntity(dto);
+
+            // Hasher le mot de passe (dans un environnement réel)
+            // encadreur.MotDePasse = HashPassword(dto.MotDePasse);
 
             _context.Encadreurs.Add(encadreur);
             await _context.SaveChangesAsync();
 
+            // Recharger l'encadreur avec son département pour le DTO de retour
+            encadreur = await _context.Encadreurs
+                .Include(e => e.Departement)
+                .FirstOrDefaultAsync(e => e.Id == encadreur.Id);
+
             return CreatedAtAction(
                 nameof(GetEncadreur),
                 new { id = encadreur.Id },
-                new EncadreurDto
-                {
-                    Id = encadreur.Id,
-                    Nom = encadreur.Nom,
-                    Prenom = encadreur.Prenom,
-                    Email = encadreur.Email,
-                    Telephone = encadreur.Telephone,
-                    Fonction = encadreur.Fonction,
-                    EstDisponible = encadreur.EstDisponible,
-                    NbrStagiaires = encadreur.NbrStagiaires,
-                    StagiaireMax = encadreur.StagiaireMax,
-                    DepartementId = encadreur.DepartementId
-                });
+                EncadreurMapping.ToDto(encadreur)
+            );
         }
 
-        // PUT: api/Encadreur/5
+        // PUT: api/Encadreurs/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateEncadreur(int id, [FromBody] EncadreurDto dto)
         {
@@ -188,7 +148,7 @@ namespace StageManager.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Encadreur/5
+        // DELETE: api/Encadreurs/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEncadreur(int id)
         {
