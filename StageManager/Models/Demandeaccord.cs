@@ -22,6 +22,8 @@ namespace StageManager.Models
         [Required]
         public StatusAccord Status { get; set; } = StatusAccord.EnAttente;
         public List <Stagiaire> stagiaires { get; set; }
+        //public List<int> Stagiaires { get; internal set; }
+        public ICollection<Stagiaire>? Stagiaires { get; set; }
         [Required]
         public int ThemeId { get; set; }
         [Required]
@@ -34,5 +36,6 @@ namespace StageManager.Models
         public Theme Theme { get; set; }
         public DemandeDeStage DemandeDeStage { get; set; }
         public Encadreur Encadreur { get; set; }
+        public DateTime DateCreation { get; internal set; }
     }
 }

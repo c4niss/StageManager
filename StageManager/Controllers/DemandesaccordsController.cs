@@ -1,7 +1,12 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StageManager.DTO.DemandeaccordDTO;
+using StageManager.Mapping;
 using StageManager.Models;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using TestRestApi.Data;
 
@@ -30,18 +35,7 @@ namespace StageManager.Controllers
                 .Include(d => d.Encadreur)
                 .ToListAsync();
 
-            return demandes.Select(d => new DemandeaccordDto
-            {
-                Id = d.Id,
-                FichePieceJointe = d.FichePieceJointe,
-                Status = d.Status,
-                StagiaireId = d.stagiaires.Select(s => s.Id).ToList(),
-                StagiaireNomComplet = string.Join(", ", d.stagiaires.Select(s => $"{s.Nom} {s.Prenom}")),
-                ThemeId = d.ThemeId,
-                ThemeNom = d.Theme?.Nom,
-                EncadreurId = d.EncadreurId,
-                EncadreurNomComplet = d.Encadreur != null ? $"{d.Encadreur.Nom} {d.Encadreur.Prenom}" : null
-            }).ToList();
+            return demandes.Select(d => DemandeAccordMapping.ToDto(d)).ToList();
         }
 
         // GET: api/Demandeaccord/5
@@ -59,18 +53,7 @@ namespace StageManager.Controllers
                 return NotFound();
             }
 
-            return new DemandeaccordDto
-            {
-                Id = demandeaccord.Id,
-                FichePieceJointe = demandeaccord.FichePieceJointe,
-                Status = demandeaccord.Status,
-                StagiaireId = demandeaccord.stagiaires.Select(s => s.Id).ToList(),
-                StagiaireNomComplet = string.Join(", ", demandeaccord.stagiaires.Select(s => $"{s.Nom} {s.Prenom}")),
-                ThemeId = demandeaccord.ThemeId,
-                ThemeNom = demandeaccord.Theme?.Nom,
-                EncadreurId = demandeaccord.EncadreurId,
-                EncadreurNomComplet = demandeaccord.Encadreur != null ? $"{demandeaccord.Encadreur.Nom} {demandeaccord.Encadreur.Prenom}" : null
-            };
+            return DemandeAccordMapping.ToDto(demandeaccord);
         }
 
         // POST: api/Demandeaccord
@@ -123,35 +106,26 @@ namespace StageManager.Controllers
                 }
             }
 
-            // Créer la demande d'accord
-            var demandeaccord = new Demandeaccord
-            {
-                FichePieceJointe = uniqueFileName,
-                Status = StatusAccord.EnAttente,
-                stagiaires = stagiaires,
-                ThemeId = dto.ThemeId,
-                EncadreurId = dto.EncadreurId,
-                DemandeStageId = 0 // À définir selon votre logique
-            };
+            // Créer la demande d'accord en utilisant le mapping
+            var demandeaccord = DemandeAccordMapping.ToEntity(dto);
+            demandeaccord.FichePieceJointe = uniqueFileName;
+            demandeaccord.stagiaires = stagiaires;
+            demandeaccord.DemandeStageId = 0; // À définir selon votre logique
 
             _context.DemandesAccord.Add(demandeaccord);
             await _context.SaveChangesAsync();
 
+            // Récupérer la demande complète avec ses relations
+            var createdDemandeaccord = await _context.DemandesAccord
+                .Include(d => d.stagiaires)
+                .Include(d => d.Theme)
+                .Include(d => d.Encadreur)
+                .FirstOrDefaultAsync(d => d.Id == demandeaccord.Id);
+
             return CreatedAtAction(
                 nameof(GetDemandeaccord),
-                new { id = demandeaccord.Id },
-                new DemandeaccordDto
-                {
-                    Id = demandeaccord.Id,
-                    FichePieceJointe = demandeaccord.FichePieceJointe,
-                    Status = demandeaccord.Status,
-                    StagiaireId = demandeaccord.stagiaires.Select(s => s.Id).ToList(),
-                    StagiaireNomComplet = string.Join(", ", demandeaccord.stagiaires.Select(s => $"{s.Nom} {s.Prenom}")),
-                    ThemeId = demandeaccord.ThemeId,
-                    ThemeNom = theme.Nom,
-                    EncadreurId = demandeaccord.EncadreurId,
-                    EncadreurNomComplet = encadreur != null ? $"{encadreur.Nom} {encadreur.Prenom}" : null
-                });
+                new { id = createdDemandeaccord.Id },
+                DemandeAccordMapping.ToDto(createdDemandeaccord));
         }
 
         // PUT: api/Demandeaccord/5/status
@@ -165,6 +139,10 @@ namespace StageManager.Controllers
             }
 
             demandeaccord.Status = dto.Status;
+
+            // Si un commentaire est fourni, vous pourriez l'ajouter à un champ de l'entité
+            // demandeaccord.Commentaire = dto.Commentaire;
+
             _context.DemandesAccord.Update(demandeaccord);
             await _context.SaveChangesAsync();
 

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TestRestApi.Data;
 
@@ -11,9 +12,11 @@ using TestRestApi.Data;
 namespace StageManager.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250404224656_updatedcontrollers")]
+    partial class updatedcontrollers
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -286,6 +289,10 @@ namespace StageManager.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.PrimitiveCollection<string>("Stagiaires")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -717,9 +724,6 @@ namespace StageManager.Migrations
                     b.Property<int?>("DemandeaccordId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("DemandeaccordId1")
-                        .HasColumnType("int");
-
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -785,8 +789,6 @@ namespace StageManager.Migrations
                     b.HasIndex("DemandeDeStageId");
 
                     b.HasIndex("DemandeaccordId");
-
-                    b.HasIndex("DemandeaccordId1");
 
                     b.HasIndex("StageId");
 
@@ -1097,10 +1099,6 @@ namespace StageManager.Migrations
                         .HasForeignKey("DemandeaccordId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("StageManager.Models.Demandeaccord", null)
-                        .WithMany("Stagiaires")
-                        .HasForeignKey("DemandeaccordId1");
-
                     b.HasOne("StageManager.Models.Stage", "Stage")
                         .WithMany("Stagiaires")
                         .HasForeignKey("StageId");
@@ -1152,8 +1150,6 @@ namespace StageManager.Migrations
 
             modelBuilder.Entity("StageManager.Models.Demandeaccord", b =>
                 {
-                    b.Navigation("Stagiaires");
-
                     b.Navigation("Theme")
                         .IsRequired();
 
