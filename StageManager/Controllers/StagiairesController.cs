@@ -150,7 +150,7 @@ namespace StageManager.Controllers
             
             return Ok();
         }
-        [Authorize]
+        [Authorize] 
         [HttpGet("/try")]
         public IActionResult ProtectedEndpoint()
         {

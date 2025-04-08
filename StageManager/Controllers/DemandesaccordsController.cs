@@ -25,32 +25,23 @@ namespace StageManager.Controllers
         public async Task<ActionResult<IEnumerable<DemandeaccordDto>>> GetDemandesAccord()
         {
             var demandes = await _context.DemandesAccord
-                .Include(d => d.stagiaires)  // Assurez-vous que le nom de la propriété est correct (Stagiaires au lieu de stagiaires)
+                .Include(d => d.stagiaires)
                 .Include(d => d.Theme)
                 .Include(d => d.Encadreur)
-                .AsNoTracking()  // Ajout recommandé pour les opérations en lecture seule
                 .ToListAsync();
 
-            if (!demandes.Any())
-            {
-                return NotFound("Aucune demande d'accord trouvée.");
-            }
-
-            var result = demandes.Select(d => new DemandeaccordDto
+            return demandes.Select(d => new DemandeaccordDto
             {
                 Id = d.Id,
                 FichePieceJointe = d.FichePieceJointe,
                 Status = d.Status,
-                StagiaireId = d.stagiaires?.Select(s => s.Id).ToList() ?? new List<int>(),
-                StagiaireNomComplet = d.stagiaires != null ?
-                    string.Join(", ", d.stagiaires.Select(s => $"{s.Nom} {s.Prenom}")) : string.Empty,
+                StagiaireId = d.stagiaires.Select(s => s.Id).ToList(),
+                StagiaireNomComplet = string.Join(", ", d.stagiaires.Select(s => $"{s.Nom} {s.Prenom}")),
                 ThemeId = d.ThemeId,
                 ThemeNom = d.Theme?.Nom,
                 EncadreurId = d.EncadreurId,
                 EncadreurNomComplet = d.Encadreur != null ? $"{d.Encadreur.Nom} {d.Encadreur.Prenom}" : null
             }).ToList();
-
-            return Ok(result);
         }
 
         // GET: api/Demandeaccord/5
