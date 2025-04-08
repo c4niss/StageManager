@@ -5,10 +5,9 @@ namespace StageManager.DTO.DemandeaccordDTO
 {
     public class UpdateDemandeaccordStatusDto
     {
-        [Required]
+        [Required(ErrorMessage = "Le statut est requis")]
         [EnumDataType(typeof(StatusAccord))]
         public StatusAccord Status { get; set; }
 
-        public string Commentaire { get; set; }
     }
 }

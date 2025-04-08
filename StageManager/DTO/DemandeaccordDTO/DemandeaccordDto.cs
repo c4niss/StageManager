@@ -7,9 +7,6 @@ namespace StageManager.DTO.DemandeaccordDTO
     {
         public int Id { get; set; }
 
-        [Required]
-        public string FichePieceJointe { get; set; }
-
         [EnumDataType(typeof(StatusAccord))]
         public StatusAccord Status { get; set; }
 
@@ -21,5 +18,12 @@ namespace StageManager.DTO.DemandeaccordDTO
 
         public int? EncadreurId { get; set; }
         public string EncadreurNomComplet { get; set; }
+
+        // Add missing properties that exist in entity and are used in controllers
+        public DateTime DateDebut { get; set; }
+        public DateTime DateFin { get; set; }
+        public int NombreSeancesParSemaine { get; set; }
+        public int DureeSeances { get; set; }
+        public DateTime DateCreation { get; set; }
     }
 }

@@ -1,8 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using StageManager.DTO.ConventionDTO;
-using StageManager.DTO.DemandeDeStageDTO;
-using StageManager.DTO.LoginDTO;
 using StageManager.DTO.MembreDirectionDTO;
 using StageManager.Mapping;
 using StageManager.Models;
@@ -30,7 +27,7 @@ namespace StageManager.Controllers
         public async Task<ActionResult<IEnumerable<MembreDirectionDto>>> GetMembresDirection()
         {
             var membresDirection = await _context.MembresDirection.ToListAsync();
-            return membresDirection.Select(m => MembreDirectionMapping.ToDto(m)).ToList();
+            return membresDirection.Select(m => m.ToDto()).ToList();
         }
 
         // GET: api/MembreDirection/5
@@ -44,12 +41,14 @@ namespace StageManager.Controllers
                 return NotFound("Membre de la direction non trouvé");
             }
 
-            return MembreDirectionMapping.ToDto(membreDirection);
+            return membreDirection.ToDto();
         }
 
         // POST: api/MembreDirection
         [HttpPost]
-        public async Task<ActionResult<MembreDirectionDto>> CreateMembreDirection(CreateMembreDirectionDto dto)
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<MembreDirectionDto>> CreateMembreDirection([FromBody] CreateMembreDirectionDto membredirectiondto)
         {
             if (!ModelState.IsValid)
             {
@@ -57,28 +56,34 @@ namespace StageManager.Controllers
             }
 
             // Vérifier si l'email existe déjà
-            var emailExists = await _context.MembresDirection.AnyAsync(m => m.Email == dto.Email);
-            if (emailExists)
+            if (await _context.MembresDirection.AnyAsync(m => m.Email == membredirectiondto.Email))
             {
-                return BadRequest("Un membre de la direction avec cet email existe déjà");
+                return BadRequest($"Un membre de la direction avec l'email {membredirectiondto.Email} existe déjà.");
             }
 
-            var membreDirection = MembreDirectionMapping.ToEntity(dto);
-            membreDirection.Role = "MembreDirection";
-            membreDirection.EstActif = true;
-            membreDirection.DatePrisePoste = DateTime.UtcNow;
-            membreDirection.DateCreation = DateTime.UtcNow;
-
-            // Hachage du mot de passe avec PasswordHasher
             var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<MembreDirection>();
-            membreDirection.MotDePasse = passwordHasher.HashPassword(null, dto.MotDePasse);
+
+            var membreDirection = new MembreDirection
+            {
+                Nom = membredirectiondto.Nom,
+                Prenom = membredirectiondto.Prenom,
+                Email = membredirectiondto.Email,
+                Telephone = membredirectiondto.Telephone,
+                Fonction = membredirectiondto.Fonction,
+                PhotoUrl = membredirectiondto.PhotoUrl,
+                MotDePasse = passwordHasher.HashPassword(null, membredirectiondto.MotDePasse),
+                Role = "MembreDirection",
+                DatePrisePoste = DateTime.Now,
+                EstActif = true,
+                DemandesDeStage = new List<DemandeDeStage>()
+            };
 
             _context.MembresDirection.Add(membreDirection);
             await _context.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetMembreDirection),
                 new { id = membreDirection.Id },
-                MembreDirectionMapping.ToDto(membreDirection));
+                membreDirection.ToDto());
         }
 
         // PUT: api/MembreDirection/5
@@ -162,17 +167,6 @@ namespace StageManager.Controllers
                 return NotFound("Membre de la direction non trouvé");
             }
 
-            // Vérifier si le membre a des références
-            var hasConventions = await _context.Conventions.AnyAsync(c => c.MembreDirectionId == id);
-            var hasDemandesStage = await _context.DemandesDeStage.AnyAsync(d => d.MembreDirectionId == id);
-            var hasAttestations = await _context.Attestations.AnyAsync(a => a.MembreDirectionId == id);
-            var hasDemandesMemoire = await _context.DemandesDepotMemoire.AnyAsync(d => d.MembreDirectionId == id);
-
-            if (hasConventions || hasDemandesStage || hasAttestations || hasDemandesMemoire)
-            {
-                return BadRequest("Ce membre de la direction ne peut pas être supprimé car il est référencé par d'autres entités");
-            }
-
             _context.MembresDirection.Remove(membreDirection);
             await _context.SaveChangesAsync();
 
@@ -181,7 +175,7 @@ namespace StageManager.Controllers
 
         // GET: api/MembreDirection/5/DemandesDeStage
         [HttpGet("{id}/DemandesDeStage")]
-        public async Task<ActionResult<IEnumerable<DemandeDeStageDto>>> GetDemandesDeStage(int id)
+        public async Task<ActionResult<IEnumerable<DemandeDeStage>>> GetDemandesDeStage(int id)
         {
             if (!MembreDirectionExists(id))
             {
@@ -190,87 +184,9 @@ namespace StageManager.Controllers
 
             var demandes = await _context.DemandesDeStage
                 .Where(d => d.MembreDirectionId == id)
-                .Include(d => d.Stagiaires)
                 .ToListAsync();
 
-            return demandes.Select(d => DemandeDeStageMapping.ToDto(d)).ToList();
-        }
-
-        // GET: api/MembreDirection/5/Conventions
-        [HttpGet("{id}/Conventions")]
-        public async Task<ActionResult<IEnumerable<ConventionDto>>> GetConventions(int id)
-        {
-            if (!MembreDirectionExists(id))
-            {
-                return NotFound("Membre de la direction non trouvé");
-            }
-
-            var conventions = await _context.Conventions
-                .Where(c => c.MembreDirectionId == id)
-                .Include(c => c.MembreDirection)
-                .Include(c => c.Stage)
-                .ToListAsync();
-
-            return conventions.Select(c => ConventionMapping.ToDto(c)).ToList();
-        }
-
-        // GET: api/MembreDirection/DashboardStats
-        [HttpGet("DashboardStats")]
-        public async Task<ActionResult<object>> GetDashboardStats()
-        {
-            var totalMembres = await _context.MembresDirection.CountAsync();
-            var totalConventions = await _context.Conventions.CountAsync();
-            var conventionsValidees = await _context.Conventions.CountAsync(c => c.EstValidee);
-            var totalAttestations = await _context.Attestations.CountAsync();
-            var attestationsDelivrees = await _context.Attestations.CountAsync(a => a.EstDelivree);
-
-            var stats = new
-            {
-                TotalMembres = totalMembres,
-                TotalConventions = totalConventions,
-                ConventionsValidees = conventionsValidees,
-                TauxValidationConventions = totalConventions > 0 ? (double)conventionsValidees / totalConventions * 100 : 0,
-                TotalAttestations = totalAttestations,
-                AttestationsDelivrees = attestationsDelivrees,
-                TauxDelivranceAttestations = totalAttestations > 0 ? (double)attestationsDelivrees / totalAttestations * 100 : 0
-            };
-
-            return Ok(stats);
-        }
-
-        // POST: api/MembreDirection/Login
-        [HttpPost("Login")]
-        public async Task<ActionResult<MembreDirectionDto>> Login(LoginDto dto)
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            var membreDirection = await _context.MembresDirection
-                .FirstOrDefaultAsync(m => m.Email == dto.Email);
-
-            if (membreDirection == null)
-            {
-                return Unauthorized("Email ou mot de passe incorrect");
-            }
-
-            // Vérifier le mot de passe avec PasswordHasher
-            var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<MembreDirection>();
-            var result = passwordHasher.VerifyHashedPassword(null, membreDirection.MotDePasse, dto.MotDePasse);
-
-            if (result != Microsoft.AspNetCore.Identity.PasswordVerificationResult.Success)
-            {
-                return Unauthorized("Email ou mot de passe incorrect");
-            }
-
-            // Vérifier si le compte est actif
-            if (!membreDirection.EstActif)
-            {
-                return Unauthorized("Ce compte est désactivé");
-            }
-
-            return Ok(MembreDirectionMapping.ToDto(membreDirection));
+            return Ok(demandes);
         }
 
         private bool MembreDirectionExists(int id)

@@ -15,10 +15,15 @@ namespace StageManager.DTO.MembreDirectionDTO
         [Required]
         [EmailAddress]
         public string Email { get; set; }
+        [Phone]
+        [StringLength(20)]
+        public string Telephone { get; set; }
 
         [Required]
         [StringLength(100)]
         public string Fonction { get; set; }
+        [StringLength(255)]
+        public string PhotoUrl { get; set; }
 
         [Required]
         [StringLength(100, MinimumLength = 8)]

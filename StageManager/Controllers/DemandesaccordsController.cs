@@ -55,84 +55,75 @@ namespace StageManager.Controllers
 
             return DemandeAccordMapping.ToDto(demandeaccord);
         }
-
-        // POST: api/Demandeaccord
-        [HttpPost]
-        public async Task<ActionResult<DemandeaccordDto>> CreateDemandeaccord([FromForm] CreateDemandeaccordDto dto)
+        // PUT: api/Demandeaccords/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateDemandeaccord(int id, [FromForm] UpdateDemandeaccordDto updateDto)
         {
-            // Vérification des stagiaires
-            var stagiaires = new List<Stagiaire>();
-            foreach (var stagiaireId in dto.StagiaireId)
-            {
-                var stagiaire = await _context.Stagiaires.FindAsync(stagiaireId);
-                if (stagiaire == null)
-                {
-                    return BadRequest($"Stagiaire avec l'ID {stagiaireId} non trouvé");
-                }
-                stagiaires.Add(stagiaire);
-            }
-
-            // Vérification du thème
-            var theme = await _context.Themes.FindAsync(dto.ThemeId);
-            if (theme == null)
-            {
-                return BadRequest("Thème non trouvé");
-            }
-
-            // Vérification de l'encadreur si fourni
-            Encadreur encadreur = null;
-            if (dto.EncadreurId.HasValue)
-            {
-                encadreur = await _context.Encadreurs.FindAsync(dto.EncadreurId);
-                if (encadreur == null)
-                {
-                    return BadRequest("Encadreur non trouvé");
-                }
-            }
-
-            // Gérer le fichier joint
-            string uniqueFileName = null;
-            if (dto.FichePieceJointe != null)
-            {
-                string uploadsFolder = Path.Combine(_env.WebRootPath, "uploads", "demandes");
-                Directory.CreateDirectory(uploadsFolder);
-
-                uniqueFileName = Guid.NewGuid().ToString() + "_" + dto.FichePieceJointe.FileName;
-                string filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                using (var fileStream = new FileStream(filePath, FileMode.Create))
-                {
-                    await dto.FichePieceJointe.CopyToAsync(fileStream);
-                }
-            }
-
-            // Créer la demande d'accord en utilisant le mapping
-            var demandeaccord = DemandeAccordMapping.ToEntity(dto);
-            demandeaccord.FichePieceJointe = uniqueFileName;
-            demandeaccord.stagiaires = stagiaires;
-            demandeaccord.DemandeStageId = 0; // À définir selon votre logique
-
-            _context.DemandesAccord.Add(demandeaccord);
-            await _context.SaveChangesAsync();
-
-            // Récupérer la demande complète avec ses relations
-            var createdDemandeaccord = await _context.DemandesAccord
+            var demandeaccord = await _context.DemandesAccord
                 .Include(d => d.stagiaires)
-                .Include(d => d.Theme)
-                .Include(d => d.Encadreur)
-                .FirstOrDefaultAsync(d => d.Id == demandeaccord.Id);
+                .FirstOrDefaultAsync(d => d.Id == id);
 
-            return CreatedAtAction(
-                nameof(GetDemandeaccord),
-                new { id = createdDemandeaccord.Id },
-                DemandeAccordMapping.ToDto(createdDemandeaccord));
+            if (demandeaccord == null)
+            {
+                return NotFound($"La demande d'accord avec l'ID {id} n'existe pas.");
+            }
+
+            try
+            {
+                // Mettre à jour les dates de la période de stage
+                demandeaccord.DateDebut = updateDto.DateDebut;
+                demandeaccord.DateFin = updateDto.DateFin;
+
+                // Mettre à jour les informations sur les séances
+                demandeaccord.NombreSeancesParSemaine = updateDto.NombreSeancesParSemaine;
+                demandeaccord.DureeSeances = updateDto.DureeSeances;
+
+                // Mettre à jour le thème si spécifié
+                if (updateDto.ThemeId.HasValue && updateDto.ThemeId != demandeaccord.ThemeId)
+                {
+                    var theme = await _context.Themes.FindAsync(updateDto.ThemeId.Value);
+                    if (theme == null)
+                    {
+                        return BadRequest($"Le thème avec l'ID {updateDto.ThemeId.Value} n'existe pas.");
+                    }
+                    demandeaccord.ThemeId = updateDto.ThemeId.Value;
+                }
+
+                // Mettre à jour l'encadreur si spécifié
+                if (updateDto.EncadreurId.HasValue && updateDto.EncadreurId != demandeaccord.EncadreurId)
+                {
+                    // Si l'EncadreurId est 0, on peut considérer que c'est pour retirer l'encadreur actuel
+                    if (updateDto.EncadreurId == 0)
+                    {
+                        demandeaccord.EncadreurId = null;
+                    }
+                    else
+                    {
+                        var encadreur = await _context.Encadreurs.FindAsync(updateDto.EncadreurId.Value);
+                        if (encadreur == null)
+                        {
+                            return BadRequest($"L'encadreur avec l'ID {updateDto.EncadreurId.Value} n'existe pas.");
+                        }
+                        demandeaccord.EncadreurId = updateDto.EncadreurId.Value;
+                    }
+                }
+
+                _context.Entry(demandeaccord).State = EntityState.Modified;
+                await _context.SaveChangesAsync();
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Une erreur est survenue lors de la mise à jour de la demande: {ex.Message}");
+            }
         }
-
         // PUT: api/Demandeaccord/5/status
         [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateDemandeaccordStatus(int id, UpdateDemandeaccordStatusDto dto)
+        public async Task<IActionResult> UpdateDemandeaccordStatus(int id, [FromBody] UpdateDemandeaccordStatusDto dto)
         {
             var demandeaccord = await _context.DemandesAccord.FindAsync(id);
+
             if (demandeaccord == null)
             {
                 return NotFound();
@@ -148,5 +139,6 @@ namespace StageManager.Controllers
 
             return NoContent();
         }
+
     }
 }

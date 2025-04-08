@@ -117,62 +117,6 @@ namespace StageManager.Controllers
 
             if (demande.Statut == DemandeDeStage.StatusDemandeDeStage.Accepte)
             {
-                foreach (var stagiaire in demande.Stagiaires)
-                {
-                    stagiaire.Status = StagiaireStatus.Accepte;
-                }
-            }
-            else if (demande.Statut == DemandeDeStage.StatusDemandeDeStage.Refuse)
-            {
-                foreach (var stagiaire in demande.Stagiaires)
-                {
-                    stagiaire.Status = StagiaireStatus.Refuse;
-                }
-            }
-
-            if (demandeDto.StagiaireIds != null && demandeDto.StagiaireIds.Any())
-            {
-                var stagiaires = await _db.Stagiaires
-                    .Where(s => demandeDto.StagiaireIds.Contains(s.Id))
-                    .ToListAsync();
-
-                if (stagiaires.Count != demandeDto.StagiaireIds.Count)
-                {
-                    return BadRequest("Un ou plusieurs stagiaires n'existent pas.");
-                }
-
-                foreach (var stagiaire in demande.Stagiaires)
-                {
-                    stagiaire.DemandeDeStageId = null;
-                }
-
-                demande.Stagiaires = stagiaires;
-                foreach (var stagiaire in stagiaires)
-                {
-                    stagiaire.DemandeDeStageId = demande.Id;
-                }
-            }
-
-            await _db.SaveChangesAsync();
-            return Ok(demande.ToDto());
-        }
-
-        [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateDemandeDeStageStatus(int id, [FromBody] DemandeDeStageUpdateStatusDto updateDto)
-        {
-            var demande = await _db.DemandesDeStage
-                .Include(d => d.Stagiaires)
-                .FirstOrDefaultAsync(d => d.Id == id);
-
-            if (demande == null)
-            {
-                return NotFound("Demande de stage non trouvée.");
-            }
-
-            demande.Statut = updateDto.Statut;
-
-            if (demande.Statut == DemandeDeStage.StatusDemandeDeStage.Accepte)
-            {
                 var existingAccord = await _db.DemandesAccord
                     .FirstOrDefaultAsync(a => a.DemandeStageId == demande.Id);
 
@@ -182,7 +126,6 @@ namespace StageManager.Controllers
                 {
                     demandeAccord = new Demandeaccord
                     {
-                        FichePieceJointe = "default_template.pdf",
                         Status = StatusAccord.EnAttente,
                         DemandeStageId = demande.Id,
 
@@ -235,6 +178,8 @@ namespace StageManager.Controllers
             await _db.SaveChangesAsync();
             return Ok(demande.ToDto());
         }
+
+
 
         private async Task EnvoyerEmailAsync(string destinataire, string sujet, string corps)
         {
