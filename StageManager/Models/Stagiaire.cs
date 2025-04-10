@@ -22,7 +22,7 @@ namespace StageManager.Models
         public int? DemandeDeStageId { get; set; }
         public int? StageId { get; set; }
         public Stage Stage { get; set; }
-        public int FicheEvaluationStagiaireId { get; set; }
+        public int? FicheEvaluationStagiaireId { get; set; }
         public FicheEvaluationStagiaire FicheEvaluationStagiaire { get; set; }
         public int? FicheDePointageId { get; set; }
         public FicheDePointage FicheDePointage { get; set; }

@@ -25,9 +25,7 @@ namespace StageManager.Controllers
             _configuration = configuration;
         }
 
-        /// <summary>
-        /// Récupère la liste de tous les stagiaires
-        /// </summary>
+       
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<StagiaireDto>>> GetStagiaires()
@@ -36,9 +34,6 @@ namespace StageManager.Controllers
             return Ok(stagiaires.Select(s => s.ToDto()));
         }
 
-        /// <summary>
-        /// Récupère les informations d'un stagiaire spécifique
-        /// </summary>
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -57,9 +52,6 @@ namespace StageManager.Controllers
             return Ok(stagiaire.ToDto());
         }
 
-        /// <summary>
-        /// Crée un nouveau stagiaire
-        /// </summary>
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -100,9 +92,7 @@ namespace StageManager.Controllers
             return CreatedAtAction(nameof(GetStagiaire), new { id = stagiaire.Id }, stagiaire.ToDto());
         }
 
-        /// <summary>
-        /// Met à jour les informations d'un stagiaire
-        /// </summary>
+
         [HttpPut("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -163,9 +153,7 @@ namespace StageManager.Controllers
             }
         }
 
-        /// <summary>
-        /// Met à jour uniquement le statut d'un stagiaire
-        /// </summary>
+   
         [HttpPut("{id}/status")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -189,9 +177,7 @@ namespace StageManager.Controllers
             return Ok(stagiaire.ToDto());
         }
 
-        /// <summary>
-        /// Met à jour partiellement un stagiaire à l'aide de JSON Patch
-        /// </summary>
+
         [HttpPatch("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -228,9 +214,7 @@ namespace StageManager.Controllers
             }
         }
 
-        /// <summary>
-        /// Supprime un stagiaire
-        /// </summary>
+
         [HttpDelete("{id}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -269,9 +253,7 @@ namespace StageManager.Controllers
             }
         }
 
-        /// <summary>
-        /// Recherche des stagiaires selon des critères spécifiques
-        /// </summary>
+
         [HttpGet("search")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<StagiaireDto>>> SearchStagiaires(
@@ -316,9 +298,6 @@ namespace StageManager.Controllers
             return Ok(stagiaires.Select(s => s.ToDto()));
         }
 
-        /// <summary>
-        /// Récupère les stagiaires affectés à un encadreur spécifique
-        /// </summary>
         [HttpGet("encadreur/{encadreurId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -337,9 +316,7 @@ namespace StageManager.Controllers
             return Ok(stagiaires.Select(s => s.ToDto()));
         }
 
-        /// <summary>
-        /// Point d'accès protégé nécessitant une authentification
-        /// </summary>
+    
         [Authorize]
         [HttpGet("authenticated")]
         [ProducesResponseType(StatusCodes.Status200OK)]

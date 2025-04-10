@@ -48,7 +48,6 @@ namespace StageManager.Models
         public int FicheEvaluationStagiaireId { get; set; }
         public FicheEvaluationStagiaire FicheEvaluationStagiaire { get; set; }
         public List<FicheEvaluationEncadreur> FicheEvaluationEncadreur { get; set; }
-        public List<FicheDePointage> FicheDePointage { get; set; }
         public int AvenantId { get; set; }
         public int MemoireId { get; set; }
         public Avenant Avenant { get; set; }

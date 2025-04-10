@@ -31,5 +31,7 @@ namespace StageManager.Models
         public bool EstActif { get; set; }
         [StringLength(255)]
         public string PhotoUrl { get; set; }
+        [Required]
+        public string TypeUtilisateur { get; set; }
     }
 }

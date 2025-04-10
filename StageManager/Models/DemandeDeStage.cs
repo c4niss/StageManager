@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace StageManager.Models
 {
@@ -22,7 +23,10 @@ namespace StageManager.Models
         public List<Stagiaire> Stagiaires { get; set; }
         public int? DemandeaccordId { get; set; }
         public Demandeaccord Demandeaccord { get; set; }
+        [ForeignKey("MembreDirection")]
         public int? MembreDirectionId { get; set; }
+
         public MembreDirection MembreDirection { get; set; }
 
-    }}
+    }
+}

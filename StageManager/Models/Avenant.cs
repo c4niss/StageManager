@@ -27,11 +27,12 @@ namespace StageManager.Models
         [ForeignKey("Stage")]
         public int StageId { get; set; }
 
-        [Required]
+
         [ForeignKey("Encadreur")]
         public int EncadreurId { get; set; }
 
-        public Stage Stage { get; set; }
         public Encadreur Encadreur { get; set; }
+        public Stage Stage { get; set; }
+
     }
 }

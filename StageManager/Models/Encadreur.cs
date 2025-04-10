@@ -19,7 +19,8 @@ namespace StageManager.Models
 
         [Required]
         public int StagiaireMax { get; set; } = 3;
-
+        public int? AvenantId { get; set; }  // Devenu nullable
+        public Avenant Avenant { get; set; }
         // Changement : Rend la clé étrangère nullable
         [ForeignKey("Departement")]
         public int? DepartementId { get; set; }  // Devenu nullable
@@ -35,5 +36,6 @@ namespace StageManager.Models
         public List<Demandeaccord> Demandeaccords { get; set; }
         public List<FicheEvaluationStagiaire> FichesEvaluationStagiaire { get; set; }
         public List<FicheEvaluationEncadreur> FichesEvaluationEncadreur { get; set; }
+        public List<FicheDePointage> FichesDePointage { get; set; }
     }
 }
