@@ -54,6 +54,12 @@ namespace StageManager.Controllers
             {
                 return BadRequest(ModelState);
             }
+            var existingusername = await _context.Utilisateurs
+                .FirstOrDefaultAsync(u => u.Username == membredirectiondto.Username);
+            if (existingusername != null)
+            {
+                return BadRequest("Le nom d'utilisateur existe déjà.");
+            }
 
             // Vérifier si l'email existe déjà
             if (await _context.MembresDirection.AnyAsync(m => m.Email == membredirectiondto.Email))
@@ -71,6 +77,7 @@ namespace StageManager.Controllers
                 Telephone = membredirectiondto.Telephone,
                 Fonction = membredirectiondto.Fonction,
                 PhotoUrl = membredirectiondto.PhotoUrl,
+                Username = membredirectiondto.Username,
                 MotDePasse = passwordHasher.HashPassword(null, membredirectiondto.MotDePasse),
                 Role = "MembreDirection",
                 DatePrisePoste = DateTime.Now,

@@ -61,7 +61,12 @@ namespace StageManager.Controllers
             {
                 return BadRequest(ModelState);
             }
-
+            var existingusername = await _db.Utilisateurs
+                .FirstOrDefaultAsync(u => u.Username == stagiaireDto.Username);
+            if (existingusername != null)
+            {
+                return BadRequest("Le nom d'utilisateur existe déjà.");
+            }
             // Vérifier si l'email existe déjà
             if (await _db.Stagiaires.AnyAsync(s => s.Email == stagiaireDto.Email))
             {
@@ -80,6 +85,7 @@ namespace StageManager.Controllers
                 Role = "Stagiaire",
                 Universite = stagiaireDto.Universite,
                 EstActif = true,
+                Username = stagiaireDto.Username,
                 Specialite = stagiaireDto.Specialite,
                 PhotoUrl = stagiaireDto.PhotoUrl,
                 Status = StagiaireStatus.EnCour,

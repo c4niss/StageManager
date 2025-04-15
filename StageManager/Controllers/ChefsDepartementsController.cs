@@ -48,7 +48,30 @@ namespace StageManager.Controllers
 
             return ChefDepartementMapping.ToDto(chefDepartement);
         }
-
+        [HttpPost]
+        public async Task<IActionResult> CreateChefDepartement(CreateChefDepartementDto newchef)
+        {
+            var existingusername = await _context.Utilisateurs
+                .FirstOrDefaultAsync(u => u.Username == newchef.Username);
+            if (existingusername != null)
+            {
+                return BadRequest("Le nom d'utilisateur existe déjà.");
+            }
+                var chefdepartement = new ChefDepartement
+            {
+                Nom = newchef.Nom,
+                Prenom = newchef.Prenom,
+                Email = newchef.Email,
+                Username = newchef.Username,
+                Telephone = newchef.Telephone,
+                MotDePasse = newchef.MotDePasse,
+                EstActif = true,
+                PhotoUrl = newchef.PhotoUrl
+            };
+            _context.ChefDepartements.Add(chefdepartement);
+            await _context.SaveChangesAsync();
+            return CreatedAtAction(nameof(GetChefDepartement), new { id = chefdepartement.Id }, ChefDepartementMapping.ToDto(chefdepartement));
+        }
         // POST: api/ChefDepartement/assign
         [HttpPost("assign")]
         public async Task<ActionResult<ChefDepartementDto>> AssignChefDepartement(AssignChefDepartementDto dto)

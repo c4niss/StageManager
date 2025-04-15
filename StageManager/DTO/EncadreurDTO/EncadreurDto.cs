@@ -17,6 +17,9 @@
             [Required]
             [EmailAddress]
             public string Email { get; set; }
+            [Required]
+            [StringLength(100)]
+            public string Username { get; set; }
 
             [Phone]
             public string Telephone { get; set; }

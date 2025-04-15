@@ -1,11 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StageManager.DTO.DemandeaccordDTO;
 using StageManager.Mapping;
 using StageManager.Models;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using TestRestApi.Data;
@@ -14,15 +14,14 @@ namespace StageManager.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class DemandeaccordsController : ControllerBase
+    [Authorize]
+    public class DemandeaccordController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IWebHostEnvironment _env;
-
-        public DemandeaccordsController(AppDbContext context, IWebHostEnvironment env)
+        public DemandeaccordController(AppDbContext context)
         {
             _context = context;
-            _env = env;
+
         }
 
         // GET: api/Demandeaccord
@@ -55,89 +54,165 @@ namespace StageManager.Controllers
 
             return DemandeAccordMapping.ToDto(demandeaccord);
         }
-        // PUT: api/Demandeaccords/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateDemandeaccord(int id, [FromForm] UpdateDemandeaccordDto updateDto)
-        {
-            var demandeaccord = await _context.DemandesAccord
-                .Include(d => d.stagiaires)
-                .FirstOrDefaultAsync(d => d.Id == id);
-
-            if (demandeaccord == null)
-            {
-                return NotFound($"La demande d'accord avec l'ID {id} n'existe pas.");
-            }
-
-            try
-            {
-                // Mettre à jour les dates de la période de stage
-                demandeaccord.DateDebut = updateDto.DateDebut;
-                demandeaccord.DateFin = updateDto.DateFin;
-
-                // Mettre à jour les informations sur les séances
-                demandeaccord.NombreSeancesParSemaine = updateDto.NombreSeancesParSemaine;
-                demandeaccord.DureeSeances = updateDto.DureeSeances;
-
-                // Mettre à jour le thème si spécifié
-                if (updateDto.ThemeId.HasValue && updateDto.ThemeId != demandeaccord.ThemeId)
-                {
-                    var theme = await _context.Themes.FindAsync(updateDto.ThemeId.Value);
-                    if (theme == null)
-                    {
-                        return BadRequest($"Le thème avec l'ID {updateDto.ThemeId.Value} n'existe pas.");
-                    }
-                    demandeaccord.ThemeId = updateDto.ThemeId.Value;
-                }
-
-                // Mettre à jour l'encadreur si spécifié
-                if (updateDto.EncadreurId.HasValue && updateDto.EncadreurId != demandeaccord.EncadreurId)
-                {
-                    // Si l'EncadreurId est 0, on peut considérer que c'est pour retirer l'encadreur actuel
-                    if (updateDto.EncadreurId == 0)
-                    {
-                        demandeaccord.EncadreurId = null;
-                    }
-                    else
-                    {
-                        var encadreur = await _context.Encadreurs.FindAsync(updateDto.EncadreurId.Value);
-                        if (encadreur == null)
-                        {
-                            return BadRequest($"L'encadreur avec l'ID {updateDto.EncadreurId.Value} n'existe pas.");
-                        }
-                        demandeaccord.EncadreurId = updateDto.EncadreurId.Value;
-                    }
-                }
-
-                _context.Entry(demandeaccord).State = EntityState.Modified;
-                await _context.SaveChangesAsync();
-
-                return NoContent();
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Une erreur est survenue lors de la mise à jour de la demande: {ex.Message}");
-            }
-        }
-        // PUT: api/Demandeaccord/5/status
-        [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateDemandeaccordStatus(int id, [FromBody] UpdateDemandeaccordStatusDto dto)
+        // PUT: api/Demandeaccord/StagiaireUpdate/5
+        [HttpPut("StagiaireUpdate/{id}")]
+        public async Task<IActionResult> UpdateStagiaireDemandeaccord(int id, UpdateStagiaireDemandeaccordDto updateDto)
         {
             var demandeaccord = await _context.DemandesAccord.FindAsync(id);
-
             if (demandeaccord == null)
             {
                 return NotFound();
             }
 
-            demandeaccord.Status = dto.Status;
+            // Vérifier si le thème existe
+            var theme = await _context.Themes.FindAsync(updateDto.ThemeId);
+            if (theme == null)
+            {
+                return BadRequest("Le thème spécifié n'existe pas.");
+            }
 
-            // Si un commentaire est fourni, vous pourriez l'ajouter à un champ de l'entité
-            // demandeaccord.Commentaire = dto.Commentaire;
+            // Mettre à jour les propriétés du stagiaire
+            demandeaccord.UniversiteInstitutEcole = updateDto.UniversiteInstitutEcole;
+            demandeaccord.FiliereSpecialite = updateDto.FiliereSpecialite;
+            demandeaccord.Telephone = updateDto.Telephone;
+            demandeaccord.Email = updateDto.Email;
+            demandeaccord.ThemeId = updateDto.ThemeId;
+            demandeaccord.DiplomeObtention = updateDto.DiplomeObtention;
+            demandeaccord.NatureStage = updateDto.NatureStage;
+            demandeaccord.Nom = updateDto.Nom;
+            demandeaccord.Prenom = updateDto.Prenom;
 
-            _context.DemandesAccord.Update(demandeaccord);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!DemandeaccordExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
 
             return NoContent();
+        }
+
+        // PUT: api/Demandeaccord/ChefDepartementUpdate/5
+        [HttpPut("ChefDepartementUpdate/{id}")]
+        public async Task<IActionResult> UpdateChefDepartementDemandeaccord(int id, UpdateChefDepartementDemandeaccordDto updateDto)
+        {
+            var demandeaccord = await _context.DemandesAccord.FindAsync(id);
+            if (demandeaccord == null)
+            {
+                return NotFound();
+            }
+
+            // Vérifier que la date de fin est après la date de début
+            if (updateDto.DateFin <= updateDto.DateDebut)
+            {
+                return BadRequest("La date de fin doit être postérieure à la date de début.");
+            }
+
+            // Mettre à jour les propriétés par le chef de département
+            demandeaccord.ServiceAccueil = updateDto.ServiceAccueil;
+            demandeaccord.DateDebut = updateDto.DateDebut;
+            demandeaccord.DateFin = updateDto.DateFin;
+            demandeaccord.NombreSeancesParSemaine = updateDto.NombreSeancesParSemaine;
+            demandeaccord.DureeSeances = updateDto.DureeSeances;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!DemandeaccordExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        // PUT: api/Demandeaccord/UpdateStatus/5
+        [HttpPut("UpdateStatus/{id}")]
+        public async Task<IActionResult> UpdateStatus(int id, UpdateDemandeaccordStatusDto updateDto)
+        {
+            var demandeaccord = await _context.DemandesAccord.FindAsync(id);
+            if (demandeaccord == null)
+            {
+                return NotFound();
+            }
+
+            demandeaccord.Status = updateDto.Status;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!DemandeaccordExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        // PUT: api/Demandeaccord/AssignEncadreur/5?encadreurId=10
+        [HttpPut("AssignEncadreur/{id}")]
+        public async Task<IActionResult> AssignEncadreur(int id, [FromQuery] int encadreurId)
+        {
+            var demandeaccord = await _context.DemandesAccord.FindAsync(id);
+            if (demandeaccord == null)
+            {
+                return NotFound();
+            }
+
+            var encadreur = await _context.Encadreurs.FindAsync(encadreurId);
+            if (encadreur == null)
+            {
+                return BadRequest("L'encadreur spécifié n'existe pas.");
+            }
+
+            demandeaccord.EncadreurId = encadreurId;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!DemandeaccordExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+        private bool DemandeaccordExists(int id)
+        {
+            return _context.DemandesAccord.Any(e => e.Id == id);
         }
 
     }

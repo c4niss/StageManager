@@ -30,27 +30,14 @@ namespace StageManager.Controllers
         [HttpPost]
         public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
         {
-            var stagiaire = await _db.Stagiaires.FirstOrDefaultAsync(e => e.Email == loginDto.Email);
-            if (stagiaire != null)
+            var user = await _db.Utilisateurs
+                 .FirstOrDefaultAsync(u => u.Username == loginDto.Username);
+            if (user != null)
             {
-                return await AuthenticateUser(stagiaire, loginDto.MotDePasse, "Stagiaire");
+                string userType = user.GetType().Name;
+                return await AuthenticateUser(user, loginDto.MotDePasse, userType);
             }
-            var encadreur = await _db.Encadreurs.FirstOrDefaultAsync(e => e.Email == loginDto.Email);
-            if (encadreur != null)
-            {
-                return await AuthenticateUser(encadreur, loginDto.MotDePasse, "Encadreur");
-            }
-            var chefdepartement = await _db.ChefDepartements.FirstOrDefaultAsync(e => e.Email == loginDto.Email);
-            if (chefdepartement != null)
-            {
-                return await AuthenticateUser(chefdepartement, loginDto.MotDePasse, "Chefdepartement");
-            }
-            var membredirection = await _db.MembresDirection.FirstOrDefaultAsync(e => e.Email == loginDto.Email);
-            if (membredirection != null)
-            {
-                return await AuthenticateUser(membredirection, loginDto.MotDePasse, "Membredirection");
-            }
-            return NotFound("Utilisateur Non Trouver");
+            return BadRequest("Nom d'utilisateur ou mot de passe incorrect.");
         }
 
         private async Task<IActionResult> AuthenticateUser(Utilisateur Utilisateur, string motdepasse, string userType)

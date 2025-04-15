@@ -16,8 +16,7 @@ namespace StageManager.Mapping
                 Telephone = membre.Telephone,
                 Fonction = membre.Fonction,
                 PhotoUrl = membre.PhotoUrl,
-                DatePrisePoste = membre.DatePrisePoste,
-                DemandesDeStage = membre.DemandesDeStage,
+                DatePrisePoste = membre.DatePrisePoste
             };
         }
 
@@ -34,8 +33,7 @@ namespace StageManager.Mapping
                 MotDePasse = dto.MotDePasse, // Doit être hashé dans le contrôleur
                 Role = "MembreDirection",
                 DatePrisePoste = DateTime.Now,
-                EstActif = true,
-                DemandesDeStage = new List<DemandeDeStage>(),
+                EstActif = true
             };
         }
     }

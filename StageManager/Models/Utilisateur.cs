@@ -13,6 +13,9 @@ namespace StageManager.Models
         [StringLength(50)]
         public string Prenom { get; set; }
         [Required]
+        [StringLength(100)]
+        public string Username { get; set; }
+        [Required]
         [EmailAddress]
         [StringLength(100)]
         public string Email { get; set; }
@@ -31,7 +34,6 @@ namespace StageManager.Models
         public bool EstActif { get; set; }
         [StringLength(255)]
         public string PhotoUrl { get; set; }
-        [Required]
-        public string TypeUtilisateur { get; set; }
+
     }
 }

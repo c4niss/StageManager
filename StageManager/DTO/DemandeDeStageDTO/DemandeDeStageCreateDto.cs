@@ -18,6 +18,7 @@ namespace StageManager.DTO.DemandeDeStageDTO
 
         [Range(0, 2)]
         public StatusDemandeDeStage Statut { get; set; } = StatusDemandeDeStage.EnCour;
+        public int membreDirectionId { get; set; }
     }
 
 }

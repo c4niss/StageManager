@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TestRestApi.Data;
 
@@ -11,9 +12,11 @@ using TestRestApi.Data;
 namespace StageManager.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250412162831_updateidtype")]
+    partial class updateidtype
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -223,64 +226,29 @@ namespace StageManager.Migrations
                     b.Property<DateTime>("DateCreation")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateDebut")
+                    b.Property<DateTime>("DateDebut")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateFin")
+                    b.Property<DateTime>("DateFin")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("DemandeStageId")
                         .HasColumnType("int");
 
-                    b.Property<string>("DiplomeObtention")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<int?>("DureeSeances")
+                    b.Property<int>("DureeSeances")
                         .HasColumnType("int");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
 
                     b.Property<int?>("EncadreurId")
                         .HasColumnType("int");
 
-                    b.Property<string>("FiliereSpecialite")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<int?>("NatureStage")
+                    b.Property<int>("NombreSeancesParSemaine")
                         .HasColumnType("int");
-
-                    b.Property<string>("Nom")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<int?>("NombreSeancesParSemaine")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Prenom")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("ServiceAccueil")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<string>("Telephone")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int?>("ThemeId")
+                    b.Property<int>("ThemeId")
                         .HasColumnType("int");
-
-                    b.Property<string>("UniversiteInstitutEcole")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
 
                     b.HasKey("Id");
 

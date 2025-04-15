@@ -5,6 +5,7 @@ namespace StageManager.DTO.StagiaireDTO
 {
     public class StagiaireDto
     {
+        public int Id { get; internal set; }
         [Required]
         [StringLength(50)]
         public string Nom { get; set; }
@@ -17,6 +18,9 @@ namespace StageManager.DTO.StagiaireDTO
         [EmailAddress]
         [StringLength(100)]
         public string Email { get; set; }
+        [Required]
+        [StringLength(100)]
+        public string Username { get; set; }
 
         [Phone]
         [StringLength(20)]

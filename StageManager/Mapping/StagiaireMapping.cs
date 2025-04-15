@@ -9,6 +9,7 @@ namespace StageManager.Mapping
         {
             return new StagiaireDto
             {
+                Id = stagiaire.Id,
                 Nom = stagiaire.Nom,
                 Prenom = stagiaire.Prenom,
                 Email = stagiaire.Email,
@@ -16,7 +17,8 @@ namespace StageManager.Mapping
                 Universite = stagiaire.Universite,
                 Specialite = stagiaire.Specialite,
                 PhotoUrl = stagiaire.PhotoUrl,
-                Status = stagiaire.Status
+                Status = stagiaire.Status,
+                Username = stagiaire.Username
             };
         }
     }

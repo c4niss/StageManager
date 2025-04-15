@@ -25,7 +25,6 @@ namespace StageManager.Models
         public Demandeaccord Demandeaccord { get; set; }
         [ForeignKey("MembreDirection")]
         public int? MembreDirectionId { get; set; }
-
         public MembreDirection MembreDirection { get; set; }
 
     }

@@ -11,7 +11,9 @@ namespace StageManager.DTO.ChefDepartementDTO
 
         [Required]
         public string Prenom { get; set; }
-
+        [Required]
+        [StringLength(100)]
+        public string Username { get; set; }
         [Required]
         [EmailAddress]
         public string Email { get; set; }

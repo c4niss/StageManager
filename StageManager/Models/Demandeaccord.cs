@@ -5,9 +5,14 @@ namespace StageManager.Models
 {
     public enum StatusAccord
     {
-        EnAttente,
+        EnCours,
         Accepte,
         Refuse
+    }
+    public enum NatureStage
+    {
+        StageImpregnation,
+        StageFinEtude
     }
 
     public class Demandeaccord
@@ -15,10 +20,9 @@ namespace StageManager.Models
         [Key]
         public int Id { get; set; }
         [Required]
-        public StatusAccord Status { get; set; } = StatusAccord.EnAttente;
+        public StatusAccord Status { get; set; } = StatusAccord.EnCours;
         public List<Stagiaire> stagiaires { get; set; }
-        [Required]
-        public int ThemeId { get; set; }
+        public int? ThemeId { get; set; }
         [Required]
         [ForeignKey("DemandeDeStage")]
         public int DemandeStageId { get; set; }
@@ -26,26 +30,56 @@ namespace StageManager.Models
         [ForeignKey("Encadreur")]
         public int? EncadreurId { get; set; }
 
-        // Ajout des propriétés pour les périodes de stage
-        [Required]
-        public DateTime DateDebut { get; set; }
+        public DateTime? DateDebut { get; set; }
 
-        [Required]
-        public DateTime DateFin { get; set; }
+        public DateTime? DateFin { get; set; }
 
-        // Ajout des propriétés pour les informations sur les séances
-        [Required]
-        [Range(1, 7)]
-        public int NombreSeancesParSemaine { get; set; }
+        [Range(1, 3)]
+        public int? NombreSeancesParSemaine { get; set; }
 
-        [Required]
-        [Range(1, 8)]
-        public int DureeSeances { get; set; }
+        [Range(1, 4)]
+        public int? DureeSeances { get; set; }
+
+
+        [StringLength(255)]
+        public string? ServiceAccueil { get; set; }
+
+
+        [StringLength(100)]
+        public string? Nom { get; set; }
+
+
+        [StringLength(100)]
+        public string? Prenom { get; set; }
+
+        [StringLength(255)]
+        public string? UniversiteInstitutEcole { get; set; }
+
+
+        [StringLength(255)]
+        public string? FiliereSpecialite { get; set; }
+
+
+        [Phone]
+        [StringLength(20)]
+        public string? Telephone { get; set; }
+
+
+        [StringLength(255)]
+        [EmailAddress]
+        public string? Email { get; set; }
+
+
+        [StringLength(255)]
+        public string? DiplomeObtention { get; set; }
+
+        public NatureStage? NatureStage { get; set; }
+
+        public DateTime DateCreation { get; set; } = DateTime.Now;
 
         // Relations
         public Theme Theme { get; set; }
         public DemandeDeStage DemandeDeStage { get; set; }
         public Encadreur Encadreur { get; set; }
-        public DateTime DateCreation { get; internal set; }
     }
 }
