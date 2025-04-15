@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-
 namespace StageManager.Models
 {
     public enum StatusAccord
@@ -14,15 +13,24 @@ namespace StageManager.Models
         StageImpregnation,
         StageFinEtude
     }
-
     public class Demandeaccord
     {
+        public Demandeaccord()
+        {
+            // Initialisation des collections
+            stagiaires = new List<Stagiaire>();
+        }
+
         [Key]
         public int Id { get; set; }
+
         [Required]
         public StatusAccord Status { get; set; } = StatusAccord.EnCours;
+
         public List<Stagiaire> stagiaires { get; set; }
+
         public int? ThemeId { get; set; }
+
         [Required]
         [ForeignKey("DemandeDeStage")]
         public int DemandeStageId { get; set; }
@@ -31,7 +39,6 @@ namespace StageManager.Models
         public int? EncadreurId { get; set; }
 
         public DateTime? DateDebut { get; set; }
-
         public DateTime? DateFin { get; set; }
 
         [Range(1, 3)]
@@ -40,14 +47,11 @@ namespace StageManager.Models
         [Range(1, 4)]
         public int? DureeSeances { get; set; }
 
-
         [StringLength(255)]
         public string? ServiceAccueil { get; set; }
 
-
         [StringLength(100)]
         public string? Nom { get; set; }
-
 
         [StringLength(100)]
         public string? Prenom { get; set; }
@@ -55,20 +59,16 @@ namespace StageManager.Models
         [StringLength(255)]
         public string? UniversiteInstitutEcole { get; set; }
 
-
         [StringLength(255)]
         public string? FiliereSpecialite { get; set; }
-
 
         [Phone]
         [StringLength(20)]
         public string? Telephone { get; set; }
 
-
         [StringLength(255)]
         [EmailAddress]
         public string? Email { get; set; }
-
 
         [StringLength(255)]
         public string? DiplomeObtention { get; set; }
@@ -77,9 +77,9 @@ namespace StageManager.Models
 
         public DateTime DateCreation { get; set; } = DateTime.Now;
 
-        // Relations
-        public Theme Theme { get; set; }
-        public DemandeDeStage DemandeDeStage { get; set; }
-        public Encadreur Encadreur { get; set; }
+        // Relations avec annotation nullable pour correspondre aux clés étrangères
+        public virtual Theme? Theme { get; set; }
+        public virtual DemandeDeStage DemandeDeStage { get; set; } = null!;
+        public virtual Encadreur? Encadreur { get; set; }
     }
 }

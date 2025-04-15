@@ -14,14 +14,13 @@ namespace StageManager.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
     public class DemandeaccordController : ControllerBase
     {
         private readonly AppDbContext _context;
+
         public DemandeaccordController(AppDbContext context)
         {
             _context = context;
-
         }
 
         // GET: api/Demandeaccord
@@ -30,6 +29,7 @@ namespace StageManager.Controllers
         {
             var demandes = await _context.DemandesAccord
                 .Include(d => d.stagiaires)
+                .Include(d => d.DemandeDeStage)
                 .Include(d => d.Theme)
                 .Include(d => d.Encadreur)
                 .ToListAsync();
@@ -43,6 +43,7 @@ namespace StageManager.Controllers
         {
             var demandeaccord = await _context.DemandesAccord
                 .Include(d => d.stagiaires)
+                .Include(d => d.DemandeDeStage)
                 .Include(d => d.Theme)
                 .Include(d => d.Encadreur)
                 .FirstOrDefaultAsync(d => d.Id == id);
@@ -208,6 +209,19 @@ namespace StageManager.Controllers
                 }
             }
 
+            return NoContent();
+        }
+        [HttpDelete("{id}")]
+        // DELETE: api/Demandeaccord/5
+        public async Task<IActionResult> DeleteDemandeacoord(int id)
+        {
+            var demandeaccord = await _context.DemandesAccord.FirstOrDefaultAsync(d => d.Id == id);
+            if (demandeaccord == null)
+            {
+                return NotFound();
+            }
+            _context.DemandesAccord.Remove(demandeaccord);
+            await _context.SaveChangesAsync();
             return NoContent();
         }
         private bool DemandeaccordExists(int id)

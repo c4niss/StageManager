@@ -33,7 +33,6 @@ namespace StageManager.Controllers
         public async Task<IActionResult> GetDemandesDeStage()
         {
             var demandes = await _db.DemandesDeStage
-                .Include(d => d.MembreDirection)
                 .Include(d => d.Stagiaires)
                 .ToListAsync();
 
@@ -44,7 +43,6 @@ namespace StageManager.Controllers
         public async Task<IActionResult> GetDemandeDeStage(int id)
         {
             var demande = await _db.DemandesDeStage
-                .Include(d => d.MembreDirection)
                 .Include(d => d.Stagiaires)
                 .FirstOrDefaultAsync(d => d.Id == id);
 
@@ -73,28 +71,12 @@ namespace StageManager.Controllers
                 return BadRequest("Un ou plusieurs stagiaires n'existent pas.");
             }
 
-            var membreDirection = await _db.MembresDirection
-                .Include(m => m.DemandesDeStage)  // Ajout de cette ligne pour charger la collection
-                .FirstOrDefaultAsync(s => s.Id == demandeDto.membreDirectionId);
-
-            if (membreDirection == null)
-            {
-                return BadRequest("Le membre de la direction n'existe pas.");
-            }
-
-            // Initialiser la collection si elle est null
-            if (membreDirection.DemandesDeStage == null)
-            {
-                membreDirection.DemandesDeStage = new List<DemandeDeStage>();
-            }
-
             var demande = new DemandeDeStage
             {
                 DateDemande = DateTime.Now,
                 cheminfichier = demandeDto.CheminFichier,
                 Statut = DemandeDeStage.StatusDemandeDeStage.EnCour,
-                Stagiaires = stagiaires,
-                MembreDirection = membreDirection
+                Stagiaires = stagiaires
             };
 
             _db.DemandesDeStage.Add(demande);
@@ -104,8 +86,6 @@ namespace StageManager.Controllers
             {
                 stagiaire.DemandeDeStageId = demande.Id;
             }
-
-            membreDirection.DemandesDeStage.Add(demande);
             await _db.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetDemandeDeStage), new { id = demande.Id }, demande.ToDto());
@@ -121,7 +101,6 @@ namespace StageManager.Controllers
 
             var demande = await _db.DemandesDeStage
                 .Include(d => d.Stagiaires)
-                .Include(d => d.MembreDirection)
                 .FirstOrDefaultAsync(d => d.Id == id);
 
             if (demande == null)
@@ -139,6 +118,7 @@ namespace StageManager.Controllers
             if (demande.Statut == DemandeDeStage.StatusDemandeDeStage.Accepte)
             {
                 var existingAccord = await _db.DemandesAccord
+                    .Include(a => a.stagiaires)
                     .FirstOrDefaultAsync(a => a.DemandeStageId == demande.Id);
 
                 Demandeaccord demandeAccord;
@@ -149,9 +129,12 @@ namespace StageManager.Controllers
                     {
                         Status = StatusAccord.EnCours,
                         DemandeStageId = demande.Id,
-                        stagiaires = new List<Stagiaire>()
+                        DateCreation = DateTime.Now,
+                        stagiaires = new List<Stagiaire>(),
+                        DemandeDeStage = demande
                     };
                     _db.DemandesAccord.Add(demandeAccord);
+                    demande.Demandeaccord = demandeAccord;
                 }
                 else
                 {
@@ -162,7 +145,7 @@ namespace StageManager.Controllers
                 {
                     stagiaire.Status = StagiaireStatus.Accepte;
 
-                    if (!demandeAccord.stagiaires.Contains(stagiaire))
+                    if (!demandeAccord.stagiaires.Any(s => s.Id == stagiaire.Id))
                     {
                         demandeAccord.stagiaires.Add(stagiaire);
                     }
