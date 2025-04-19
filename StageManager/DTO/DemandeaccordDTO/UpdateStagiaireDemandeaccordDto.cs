@@ -23,16 +23,9 @@ namespace StageManager.DTO.DemandeaccordDTO
         [StringLength(255)]
         public string? Email { get; set; }
 
-        [Required(ErrorMessage = "Le thème est requis")]
-        public int? ThemeId { get; set; }
-
         [Required(ErrorMessage = "Le diplôme d'obtention est requis")]
         [StringLength(255)]
         public string? DiplomeObtention { get; set; }
-
-        [Required(ErrorMessage = "La nature du stage est requise")]
-        [EnumDataType(typeof(NatureStage))]
-        public NatureStage? NatureStage { get; set; }
 
         [Required(ErrorMessage = "Le nom est requis")]
         [StringLength(100)]

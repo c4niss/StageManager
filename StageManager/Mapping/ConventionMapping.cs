@@ -11,7 +11,7 @@ namespace StageManager.Mapping
             {
                 Id = convention.Id,
                 DateDepot = convention.DateDepot,
-                EstValidee = convention.EstValidee,
+                Status = convention.status,
                 CheminFichier = convention.CheminFichier,
                 StageId = convention.StageId,
                 MembreDirectionId = convention.MembreDirectionId,

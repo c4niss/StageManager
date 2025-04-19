@@ -10,7 +10,5 @@ namespace StageManager.Models
         public int DepartementId { get; set; }
         public Departement Departement { get; set; }
         public List<Demandeaccord> Demandeaccords { get; set; }
-        [NotMapped]
-        public object DemandesAccord { get; internal set; }
     }
 }

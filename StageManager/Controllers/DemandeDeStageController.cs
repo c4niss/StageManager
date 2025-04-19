@@ -71,12 +71,22 @@ namespace StageManager.Controllers
                 return BadRequest("Un ou plusieurs stagiaires n'existent pas.");
             }
 
+            if (demandeDto.MembreDirectionId.HasValue)
+            {
+                var membreDirection = await _db.MembresDirection.FindAsync(demandeDto.MembreDirectionId.Value);
+                if (membreDirection == null)
+                {
+                    return BadRequest("Le membre de direction spécifié n'existe pas.");
+                }
+            }
+
             var demande = new DemandeDeStage
             {
                 DateDemande = DateTime.Now,
                 cheminfichier = demandeDto.CheminFichier,
-                Statut = DemandeDeStage.StatusDemandeDeStage.EnCour,
-                Stagiaires = stagiaires
+                Statut = DemandeDeStage.StatusDemandeDeStage.EnCours,
+                Stagiaires = stagiaires,
+                MembreDirectionId = demandeDto.MembreDirectionId
             };
 
             _db.DemandesDeStage.Add(demande);
@@ -90,7 +100,6 @@ namespace StageManager.Controllers
 
             return CreatedAtAction(nameof(GetDemandeDeStage), new { id = demande.Id }, demande.ToDto());
         }
-
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateDemandeDeStage(int id, [FromBody] DemandeDeStageUpdateDto demandeDto)
         {
@@ -134,7 +143,8 @@ namespace StageManager.Controllers
                         DemandeDeStage = demande
                     };
                     _db.DemandesAccord.Add(demandeAccord);
-                    demande.Demandeaccord = demandeAccord;
+                    await _db.SaveChangesAsync();
+                    demande.DemandeaccordId = demandeAccord.Id;
                 }
                 else
                 {

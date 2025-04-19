@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace StageManager.Models
 {
@@ -17,7 +18,14 @@ namespace StageManager.Models
         public int DepartementId { get; set; }
 
         public Departement Departement { get; set; }
+
+        [JsonIgnore]
         public List<Encadreur> Encadreurs { get; set; }
+
+        [JsonIgnore]
         public List<Stage> Stages { get; set; }
+
+        [JsonIgnore]
+        public List<Theme> Themes { get; set; }
     }
 }

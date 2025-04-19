@@ -13,32 +13,17 @@ namespace StageManager.Mapping
                 Nom = encadreur.Nom,
                 Prenom = encadreur.Prenom,
                 Email = encadreur.Email,
+                Username = encadreur.Username,
                 Telephone = encadreur.Telephone,
                 Fonction = encadreur.Fonction,
+                PhotoUrl = encadreur.PhotoUrl ?? string.Empty,
                 EstDisponible = encadreur.EstDisponible,
                 NbrStagiaires = encadreur.NbrStagiaires,
                 StagiaireMax = encadreur.StagiaireMax,
                 DepartementId = encadreur.DepartementId,
-                DepartementNom = encadreur.Departement?.Nom
-            };
-        }
-
-        public static Encadreur ToEntity(this CreateEncadreurDto dto)
-        {
-            return new Encadreur
-            {
-                Nom = dto.Nom,
-                Prenom = dto.Prenom,
-                Email = dto.Email,
-                Telephone = dto.Telephone,
-                MotDePasse = dto.MotDePasse, // Doit être hashé dans le contrôleur
-                Role = "Encadreur",
-                Fonction = string.Empty,
-                EstDisponible = true,
-                NbrStagiaires = 0,
-                StagiaireMax = 5, // Valeur par défaut
-                DepartementId = dto.DepartementId,
-                EstActif = true
+                DepartementNom = encadreur.Departement?.Nom,
+                DomaineId = encadreur.DomaineId,
+                DomaineNom = encadreur.Domaine?.Nom
             };
         }
     }

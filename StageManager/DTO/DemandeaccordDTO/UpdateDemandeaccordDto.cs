@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using StageManager.Models;
+﻿using StageManager.Models;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;

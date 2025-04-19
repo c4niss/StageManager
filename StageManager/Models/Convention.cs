@@ -5,14 +5,20 @@ namespace StageManager.Models
 {
     public class Convention
     {
+        public enum Statusconvention
+        {
+            EnCours,
+            Accepte,
+            Refuse
+        }
         [Key]
         public int Id { get; set; }
 
         [Required]
-        public DateTime DateDepot { get; set; } = DateTime.UtcNow;
+        public DateTime DateDepot { get; set; } = DateTime.Now;
 
         [Required]
-        public bool EstValidee { get; set; } = false;
+        public Statusconvention status { get; set; } = Statusconvention.EnCours;
 
         [Required]
         [StringLength(255)]
@@ -20,13 +26,15 @@ namespace StageManager.Models
 
         [Required]
         [ForeignKey("Stage")]
-        public int StageId { get; set; }
+        public int? StageId { get; set; }
+        [ForeignKey("DemandeAccord")]
+        public int DemandeAccordId { get; set; }
 
         [Required]
         [ForeignKey("MembreDirection")]
         public int MembreDirectionId { get; set; }
-
-        public Stage Stage { get; set; }
+        public Demandeaccord DemandeAccord { get; set; }
+        public Stage? Stage { get; set; }
         public MembreDirection MembreDirection { get; set; }
     }
 }

@@ -13,14 +13,11 @@ namespace StageManager.Models
         [StringLength(100)]
         public string Nom { get; set; }
 
-        // Changement : Rend la clé étrangère nullable
         [ForeignKey("ChefDepartement")]
-        public int? ChefDepartementId { get; set; }  // Devenu nullable
+        public int? ChefDepartementId { get; set; }
 
-        // Navigation principale
         public ChefDepartement ChefDepartement { get; set; }
 
-        // Listes avec JsonIgnore
         [JsonIgnore]
         public List<Encadreur> Encadreurs { get; set; }
 

@@ -4,10 +4,8 @@ namespace StageManager.DTO.DepartementDTO
 {
     public class CreateDepartementDto
     {
-        [Required(ErrorMessage = "Le nom est obligatoire")]
-        [StringLength(100, MinimumLength = 3, ErrorMessage = "3-100 caractères")]
+        [Required]
+        [StringLength(20)]
         public string Nom { get; set; }
-
-        public int? ChefDepartementId { get; set; } // Optionnel à la création
     }
 }

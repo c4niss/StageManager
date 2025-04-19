@@ -19,20 +19,16 @@ namespace StageManager.Models
 
         [Required]
         public int StagiaireMax { get; set; } = 3;
-        public int? AvenantId { get; set; }  // Devenu nullable
+        public int? AvenantId { get; set; }
         public Avenant Avenant { get; set; }
-        // Changement : Rend la clé étrangère nullable
         [ForeignKey("Departement")]
-        public int? DepartementId { get; set; }  // Devenu nullable
-
-        // Suppression de la navigation inverse si non essentielle
+        public int? DepartementId { get; set; }
         public Departement Departement { get; set; }
-
-        // Liste modifiée pour éviter la référence circulaire
-        [JsonIgnore]  // Important pour la sérialisation
+        [ForeignKey("Domaine")]
+        public int? DomaineId { get; set; }
+        public Domaine Domaine { get; set; }
+        [JsonIgnore]
         public List<Stage> Stages { get; set; }
-
-        // Autres propriétés inchangées
         public List<Demandeaccord> Demandeaccords { get; set; }
         public List<FicheEvaluationStagiaire> FichesEvaluationStagiaire { get; set; }
         public List<FicheEvaluationEncadreur> FichesEvaluationEncadreur { get; set; }

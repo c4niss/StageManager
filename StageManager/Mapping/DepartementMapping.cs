@@ -13,19 +13,10 @@ namespace StageManager.Mapping
                 Id = departement.Id,
                 Nom = departement.Nom,
                 ChefDepartementId = departement.ChefDepartementId,
-                ChefDepartementNom = departement.ChefDepartement?.Nom,
+                ChefDepartementNom = departement.ChefDepartement != null
+                    ? $"{departement.ChefDepartement.Nom} {departement.ChefDepartement.Prenom}"
+                    : string.Empty,
                 NombreEncadreurs = departement.Encadreurs?.Count ?? 0,
-                NombreStagiairesActuels = departement.Encadreurs?
-                    .Sum(e => e.NbrStagiaires) ?? 0
-            };
-        }
-
-        public static Departement ToEntity(this CreateDepartementDto dto)
-        {
-            return new Departement
-            {
-                Nom = dto.Nom,
-                ChefDepartementId = dto.ChefDepartementId
             };
         }
     }

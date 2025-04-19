@@ -2,8 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using StageManager.DTO.DepartementDTO;
 using StageManager.DTO.DepartementDTO.StageManager.DTOs;
+using StageManager.Mapping;
 using StageManager.Models;
-using System.Threading.Tasks;
 using TestRestApi.Data;
 
 namespace StageManager.Controllers
@@ -19,7 +19,7 @@ namespace StageManager.Controllers
             _context = context;
         }
 
-        // GET: api/Departement
+        // GET: api/Departements
         [HttpGet]
         public async Task<ActionResult<IEnumerable<DepartementDto>>> GetDepartements()
         {
@@ -28,19 +28,10 @@ namespace StageManager.Controllers
                 .Include(d => d.Encadreurs)
                 .ToListAsync();
 
-            return departements.Select(d => new DepartementDto
-            {
-                Id = d.Id,
-                Nom = d.Nom,
-                ChefDepartementId = d.ChefDepartementId,
-                ChefDepartementNom = d.ChefDepartement != null ? $"{d.ChefDepartement.Nom} {d.ChefDepartement.Prenom}" : null,
-                NombreEncadreurs = d.Encadreurs?.Count ?? 0,
-                // Pour calculer le nombre de stagiaires actuels, vous auriez besoin d'une requête plus complexe
-                NombreStagiairesActuels = 0 // Implémentation à compléter
-            }).ToList();
+            return Ok(departements.Select(d => d.ToDto()));
         }
 
-        // GET: api/Departement/5
+        // GET: api/Departements/5
         [HttpGet("{id}")]
         public async Task<ActionResult<DepartementDto>> GetDepartement(int id)
         {
@@ -54,59 +45,26 @@ namespace StageManager.Controllers
                 return NotFound();
             }
 
-            // Calcul du nombre de stagiaires actuels
-            var nombreStagiaires = await _context.Stages
-                .Where(s => s.DepartementId == id && s.Statut == StatutStage.EnCours)
-                .SelectMany(s => s.Stagiaires)
-                .CountAsync();
-
-            return new DepartementDto
-            {
-                Id = departement.Id,
-                Nom = departement.Nom,
-                ChefDepartementId = departement.ChefDepartementId,
-                ChefDepartementNom = departement.ChefDepartement != null ? $"{departement.ChefDepartement.Nom} {departement.ChefDepartement.Prenom}" : null,
-                NombreEncadreurs = departement.Encadreurs?.Count ?? 0,
-                NombreStagiairesActuels = nombreStagiaires
-            };
+            return Ok(departement.ToDto());
         }
 
-        // POST: api/Departement
+        // POST: api/Departements
         [HttpPost]
-        public async Task<ActionResult<DepartementDto>> CreateDepartement(CreateDepartementDto dto)
+        public async Task<ActionResult<DepartementDto>> CreateDepartement(CreateDepartementDto createDto)
         {
-            // Vérifier si le chef existe (s'il a été fourni)
-            if (dto.ChefDepartementId.HasValue)
-            {
-                var chefExists = await _context.ChefDepartements.AnyAsync(c => c.Id == dto.ChefDepartementId);
-                if (!chefExists)
-                {
-                    return BadRequest("Chef de département non trouvé");
-                }
-            }
-
             var departement = new Departement
             {
-                Nom = dto.Nom,
-                ChefDepartementId = dto.ChefDepartementId
+                Nom = createDto.Nom,
             };
-
             _context.Departements.Add(departement);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetDepartement), new { id = departement.Id }, new DepartementDto
-            {
-                Id = departement.Id,
-                Nom = departement.Nom,
-                ChefDepartementId = departement.ChefDepartementId,
-                NombreEncadreurs = 0,
-                NombreStagiairesActuels = 0
-            });
+            return CreatedAtAction(nameof(GetDepartement), new { id = departement.Id }, departement.ToDto());
         }
 
-        // PUT: api/Departement/5
+        // PUT: api/Departements/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateDepartement(int id, UpdateDepartementDto dto)
+        public async Task<IActionResult> UpdateDepartement(int id, UpdateDepartementDto updateDto)
         {
             var departement = await _context.Departements.FindAsync(id);
             if (departement == null)
@@ -114,51 +72,53 @@ namespace StageManager.Controllers
                 return NotFound();
             }
 
-            // Mise à jour des propriétés si elles sont fournies
-            if (!string.IsNullOrEmpty(dto.Nom))
-            {
-                departement.Nom = dto.Nom;
-            }
+            if (!string.IsNullOrEmpty(updateDto.Nom))
+                departement.Nom = updateDto.Nom;
 
-            if (dto.ChefDepartementId.HasValue)
+            if (updateDto.ChefDepartementId.HasValue)
             {
-                var chefExists = await _context.ChefDepartements.AnyAsync(c => c.Id == dto.ChefDepartementId);
-                if (!chefExists)
+                var chef = await _context.ChefDepartements.FindAsync(updateDto.ChefDepartementId.Value);
+                if (chef == null)
                 {
                     return BadRequest("Chef de département non trouvé");
                 }
-                departement.ChefDepartementId = dto.ChefDepartementId;
+                departement.ChefDepartementId = updateDto.ChefDepartementId.Value;
             }
 
-            _context.Departements.Update(departement);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!DepartementExists(id))
+                    return NotFound();
+                else
+                    throw;
+            }
 
             return NoContent();
         }
 
-        // DELETE: api/Departement/5
+        // DELETE: api/Departements/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDepartement(int id)
         {
-            var departement = await _context.Departements
-                .Include(d => d.Encadreurs)
-                .FirstOrDefaultAsync(d => d.Id == id);
-
+            var departement = await _context.Departements.FindAsync(id);
             if (departement == null)
             {
                 return NotFound();
-            }
-
-            // Vérifier si des encadreurs sont associés
-            if (departement.Encadreurs != null && departement.Encadreurs.Any())
-            {
-                return BadRequest("Impossible de supprimer: des encadreurs sont associés à ce département");
             }
 
             _context.Departements.Remove(departement);
             await _context.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        private bool DepartementExists(int id)
+        {
+            return _context.Departements.Any(e => e.Id == id);
         }
     }
 }

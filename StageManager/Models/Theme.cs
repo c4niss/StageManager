@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace StageManager.Models
 {
@@ -16,11 +17,14 @@ namespace StageManager.Models
         [ForeignKey("Demandeaccord")]
         public int DemandeaccordId { get; set; }
 
-        [Required]
+        // Make StageId nullable
         [ForeignKey("Stage")]
-        public int StageId { get; set; }
+        public int? StageId { get; set; }
 
+        [JsonIgnore]
         public Demandeaccord Demandeaccord { get; set; }
-        public Stage Stage { get; set; }
+
+        [JsonIgnore]
+        public Stage? Stage { get; set; }
     }
 }

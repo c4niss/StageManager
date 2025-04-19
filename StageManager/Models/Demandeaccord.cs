@@ -28,15 +28,18 @@ namespace StageManager.Models
         public StatusAccord Status { get; set; } = StatusAccord.EnCours;
 
         public List<Stagiaire> stagiaires { get; set; }
+        public int? StagiaireGroupeId { get; set; }
+        [ForeignKey("ChefDepartement")]
+        public int? ChefDepartementId { get; set; }
+
+        [ForeignKey("Encadreur")]
+        public int? EncadreurId { get; set; }
 
         public int? ThemeId { get; set; }
 
         [Required]
         [ForeignKey("DemandeDeStage")]
         public int DemandeStageId { get; set; }
-
-        [ForeignKey("Encadreur")]
-        public int? EncadreurId { get; set; }
 
         public DateTime? DateDebut { get; set; }
         public DateTime? DateFin { get; set; }
@@ -81,5 +84,6 @@ namespace StageManager.Models
         public virtual Theme? Theme { get; set; }
         public virtual DemandeDeStage DemandeDeStage { get; set; } = null!;
         public virtual Encadreur? Encadreur { get; set; }
+        public virtual ChefDepartement? ChefDepartement { get; set; }
     }
 }

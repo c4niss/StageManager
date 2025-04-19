@@ -12,8 +12,8 @@ using TestRestApi.Data;
 namespace StageManager.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250415160607_demandeaccordupdat")]
-    partial class demandeaccordupdat
+    [Migration("20250418173548_allproject")]
+    partial class allproject
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -118,8 +118,8 @@ namespace StageManager.Migrations
                     b.Property<DateTime>("DateDepot")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("EstValidee")
-                        .HasColumnType("bit");
+                    b.Property<int>("DemandeAccordId")
+                        .HasColumnType("int");
 
                     b.Property<int>("MembreDirectionId")
                         .HasColumnType("int");
@@ -127,7 +127,12 @@ namespace StageManager.Migrations
                     b.Property<int>("StageId")
                         .HasColumnType("int");
 
+                    b.Property<int>("status")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("DemandeAccordId");
 
                     b.HasIndex("MembreDirectionId");
 
@@ -165,6 +170,8 @@ namespace StageManager.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DemandeaccordId");
 
                     b.HasIndex("MembreDirectionId");
 
@@ -270,6 +277,9 @@ namespace StageManager.Migrations
                     b.Property<string>("ServiceAccueil")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<int?>("StagiaireGroupeId")
+                        .HasColumnType("int");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -552,18 +562,23 @@ namespace StageManager.Migrations
                     b.Property<int>("DemandeaccordId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("DomaineId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Nom")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("StageId")
+                    b.Property<int?>("StageId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
 
                     b.HasIndex("DemandeaccordId")
                         .IsUnique();
+
+                    b.HasIndex("DomaineId");
 
                     b.HasIndex("StageId");
 
@@ -800,6 +815,12 @@ namespace StageManager.Migrations
 
             modelBuilder.Entity("StageManager.Models.Convention", b =>
                 {
+                    b.HasOne("StageManager.Models.Demandeaccord", "DemandeAccord")
+                        .WithMany()
+                        .HasForeignKey("DemandeAccordId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("StageManager.Models.MembreDirection", "MembreDirection")
                         .WithMany("Conventions")
                         .HasForeignKey("MembreDirectionId")
@@ -812,6 +833,8 @@ namespace StageManager.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("DemandeAccord");
+
                     b.Navigation("MembreDirection");
 
                     b.Navigation("Stage");
@@ -819,6 +842,10 @@ namespace StageManager.Migrations
 
             modelBuilder.Entity("StageManager.Models.DemandeDeStage", b =>
                 {
+                    b.HasOne("StageManager.Models.Demandeaccord", "Demandeaccord")
+                        .WithMany()
+                        .HasForeignKey("DemandeaccordId");
+
                     b.HasOne("StageManager.Models.MembreDirection", "MembreDirection")
                         .WithMany()
                         .HasForeignKey("MembreDirectionId")
@@ -827,6 +854,8 @@ namespace StageManager.Migrations
                     b.HasOne("StageManager.Models.MembreDirection", null)
                         .WithMany("DemandesDeStage")
                         .HasForeignKey("MembreDirectionId1");
+
+                    b.Navigation("Demandeaccord");
 
                     b.Navigation("MembreDirection");
                 });
@@ -850,12 +879,12 @@ namespace StageManager.Migrations
 
             modelBuilder.Entity("StageManager.Models.Demandeaccord", b =>
                 {
-                    b.HasOne("StageManager.Models.ChefDepartement", null)
+                    b.HasOne("StageManager.Models.ChefDepartement", "ChefDepartement")
                         .WithMany("Demandeaccords")
                         .HasForeignKey("ChefDepartementId");
 
                     b.HasOne("StageManager.Models.DemandeDeStage", "DemandeDeStage")
-                        .WithOne("Demandeaccord")
+                        .WithOne()
                         .HasForeignKey("StageManager.Models.Demandeaccord", "DemandeStageId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -863,6 +892,8 @@ namespace StageManager.Migrations
                     b.HasOne("StageManager.Models.Encadreur", "Encadreur")
                         .WithMany("Demandeaccords")
                         .HasForeignKey("EncadreurId");
+
+                    b.Navigation("ChefDepartement");
 
                     b.Navigation("DemandeDeStage");
 
@@ -1004,11 +1035,13 @@ namespace StageManager.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("StageManager.Models.Domaine", null)
+                        .WithMany("Themes")
+                        .HasForeignKey("DomaineId");
+
                     b.HasOne("StageManager.Models.Stage", "Stage")
                         .WithMany()
-                        .HasForeignKey("StageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("StageId");
 
                     b.Navigation("Demandeaccord");
 
@@ -1033,11 +1066,13 @@ namespace StageManager.Migrations
                         .HasForeignKey("DepartementId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("StageManager.Models.Domaine", null)
+                    b.HasOne("StageManager.Models.Domaine", "Domaine")
                         .WithMany("Encadreurs")
                         .HasForeignKey("DomaineId");
 
                     b.Navigation("Departement");
+
+                    b.Navigation("Domaine");
                 });
 
             modelBuilder.Entity("StageManager.Models.Stagiaire", b =>
@@ -1064,9 +1099,6 @@ namespace StageManager.Migrations
 
             modelBuilder.Entity("StageManager.Models.DemandeDeStage", b =>
                 {
-                    b.Navigation("Demandeaccord")
-                        .IsRequired();
-
                     b.Navigation("Stagiaires");
                 });
 
@@ -1095,6 +1127,8 @@ namespace StageManager.Migrations
                     b.Navigation("Encadreurs");
 
                     b.Navigation("Stages");
+
+                    b.Navigation("Themes");
                 });
 
             modelBuilder.Entity("StageManager.Models.Stage", b =>

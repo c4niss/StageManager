@@ -25,7 +25,7 @@ namespace StageManager.Controllers
             _configuration = configuration;
         }
 
-       
+
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<StagiaireDto>>> GetStagiaires()
@@ -159,7 +159,7 @@ namespace StageManager.Controllers
             }
         }
 
-   
+
         [HttpPut("{id}/status")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -322,7 +322,7 @@ namespace StageManager.Controllers
             return Ok(stagiaires.Select(s => s.ToDto()));
         }
 
-    
+
         [Authorize]
         [HttpGet("authenticated")]
         [ProducesResponseType(StatusCodes.Status200OK)]

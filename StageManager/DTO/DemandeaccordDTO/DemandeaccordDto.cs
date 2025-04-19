@@ -8,11 +8,13 @@ public class DemandeaccordDto
     public StatusAccord Status { get; set; }
     public List<int> StagiaireId { get; set; }
     public string? StagiaireNomComplet { get; set; }
+    public int? ChefDepartementId { get; set; }
+    public string? ChefDepartementNomComplet { get; set; }
+    public int? EncadreurId { get; set; }
+    public string? EncadreurNomComplet { get; set; }
     public int? ThemeId { get; set; }
     public string? ThemeNom { get; set; }
     public int DemandeStageId { get; set; }
-    public int? EncadreurId { get; set; }
-    public string? EncadreurNomComplet { get; set; }
     public DateTime? DateDebut { get; set; }
     public DateTime? DateFin { get; set; }
     public int? NombreSeancesParSemaine { get; set; }

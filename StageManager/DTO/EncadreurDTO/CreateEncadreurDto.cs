@@ -15,6 +15,7 @@ namespace StageManager.DTO.EncadreurDTO
         [Required]
         [EmailAddress]
         public string Email { get; set; }
+
         [Required]
         [StringLength(100)]
         public string Username { get; set; }
@@ -25,8 +26,13 @@ namespace StageManager.DTO.EncadreurDTO
 
         [Phone]
         public string Telephone { get; set; }
+        [StringLength(50)]
+        public string PhotoUrl { get; set; }
 
         [Required]
         public int DepartementId { get; set; }
+
+        [Required]
+        public int DomaineId { get; set; }
     }
 }

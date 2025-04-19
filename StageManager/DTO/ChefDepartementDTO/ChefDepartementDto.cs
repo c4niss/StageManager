@@ -17,8 +17,11 @@ namespace StageManager.DTO.ChefDepartementDTO
         [Required]
         [EmailAddress]
         public string Email { get; set; }
+        public string Telephone { get; set; }
 
         public int DepartementId { get; set; }
         public string DepartementNom { get; set; }
+        public bool EstActif { get; set; }
+        public string PhotoUrl { get; set; }
     }
 }

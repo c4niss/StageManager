@@ -95,11 +95,11 @@ namespace StageManager.Controllers
 
         // PUT: api/MembreDirection/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateMembreDirection(int id, CreateMembreDirectionDto dto)
+        public async Task<IActionResult> UpdateMembreDirection(int id, UpdateMembreDirectionDto updateDto)
         {
-            if (!ModelState.IsValid)
+            if (id != updateDto.Id)
             {
-                return BadRequest(ModelState);
+                return BadRequest("L'ID ne correspond pas");
             }
 
             var membreDirection = await _context.MembresDirection.FindAsync(id);
@@ -109,24 +109,39 @@ namespace StageManager.Controllers
             }
 
             // Vérifier si l'email est déjà utilisé par un autre membre
-            var emailExists = await _context.MembresDirection
-                .AnyAsync(m => m.Email == dto.Email && m.Id != id);
-            if (emailExists)
+            if (!string.IsNullOrEmpty(updateDto.Email) &&
+                await _context.MembresDirection.AnyAsync(m => m.Email == updateDto.Email && m.Id != id))
             {
                 return BadRequest("Cet email est déjà utilisé par un autre membre de la direction");
             }
 
-            // Mise à jour des propriétés
-            membreDirection.Nom = dto.Nom;
-            membreDirection.Prenom = dto.Prenom;
-            membreDirection.Email = dto.Email;
-            membreDirection.Fonction = dto.Fonction;
+            // Update properties if provided
+            if (!string.IsNullOrEmpty(updateDto.Nom))
+                membreDirection.Nom = updateDto.Nom;
+
+            if (!string.IsNullOrEmpty(updateDto.Prenom))
+                membreDirection.Prenom = updateDto.Prenom;
+
+            if (!string.IsNullOrEmpty(updateDto.Email))
+                membreDirection.Email = updateDto.Email;
+
+            if (!string.IsNullOrEmpty(updateDto.Telephone))
+                membreDirection.Telephone = updateDto.Telephone;
+
+            if (!string.IsNullOrEmpty(updateDto.Username))
+                membreDirection.Username = updateDto.Username;
+
+            if (!string.IsNullOrEmpty(updateDto.Fonction))
+                membreDirection.Fonction = updateDto.Fonction;
+
+            if (!string.IsNullOrEmpty(updateDto.PhotoUrl))
+                membreDirection.PhotoUrl = updateDto.PhotoUrl;
 
             // Mise à jour du mot de passe seulement si fourni
-            if (!string.IsNullOrEmpty(dto.MotDePasse))
+            if (!string.IsNullOrEmpty(updateDto.MotDePasse))
             {
                 var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<MembreDirection>();
-                membreDirection.MotDePasse = passwordHasher.HashPassword(null, dto.MotDePasse);
+                membreDirection.MotDePasse = passwordHasher.HashPassword(null, updateDto.MotDePasse);
             }
 
             try

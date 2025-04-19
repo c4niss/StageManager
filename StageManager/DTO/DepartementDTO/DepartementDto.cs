@@ -9,7 +9,7 @@
             public int Id { get; set; }
 
             [Required]
-            [StringLength(100, ErrorMessage = "Le nom ne peut dépasser 100 caractères")]
+            [StringLength(20)]
             public string Nom { get; set; }
 
             public int? ChefDepartementId { get; set; }
