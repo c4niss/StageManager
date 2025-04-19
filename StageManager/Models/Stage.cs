@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace StageManager.Models
 {
-    public enum StatutStage { EnAttente, EnCours, Termine, Annule, Prolonge }
+    public enum StatutStage {EnCours, Termine, Annule, Prolonge }
 
     public class Stage
     {

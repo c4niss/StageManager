@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TestRestApi.Data;
 
@@ -11,9 +12,11 @@ using TestRestApi.Data;
 namespace StageManager.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250419173332_auto-rappel")]
+    partial class autorappel
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -129,8 +132,7 @@ namespace StageManager.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DemandeAccordId")
-                        .IsUnique();
+                    b.HasIndex("DemandeAccordId");
 
                     b.HasIndex("MembreDirectionId");
 
@@ -237,7 +239,7 @@ namespace StageManager.Migrations
                     b.Property<DateTime?>("DateFin")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateSoumissionStagiaire")
+                    b.Property<DateTime>("DateSoumissionStagiaire")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("DemandeStageId")
@@ -301,9 +303,6 @@ namespace StageManager.Migrations
                     b.Property<string>("UniversiteInstitutEcole")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
-
-                    b.Property<int>("conventionId")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -826,8 +825,8 @@ namespace StageManager.Migrations
             modelBuilder.Entity("StageManager.Models.Convention", b =>
                 {
                     b.HasOne("StageManager.Models.Demandeaccord", "DemandeAccord")
-                        .WithOne("Convention")
-                        .HasForeignKey("StageManager.Models.Convention", "DemandeAccordId")
+                        .WithMany()
+                        .HasForeignKey("DemandeAccordId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1120,9 +1119,6 @@ namespace StageManager.Migrations
 
             modelBuilder.Entity("StageManager.Models.Demandeaccord", b =>
                 {
-                    b.Navigation("Convention")
-                        .IsRequired();
-
                     b.Navigation("Theme");
 
                     b.Navigation("stagiaires");

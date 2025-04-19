@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using StageManager.BackgroundService;
 using System;
 using System.Text;
 using TestRestApi.Data;
@@ -49,7 +50,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-
+builder.Services.AddHostedService<RappelBackgroundService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

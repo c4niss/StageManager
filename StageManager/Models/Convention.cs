@@ -29,11 +29,10 @@ namespace StageManager.Models
         public int? StageId { get; set; }
         [ForeignKey("DemandeAccord")]
         public int DemandeAccordId { get; set; }
-
+        public Demandeaccord DemandeAccord { get; set; }
         [Required]
         [ForeignKey("MembreDirection")]
         public int MembreDirectionId { get; set; }
-        public Demandeaccord DemandeAccord { get; set; }
         public Stage? Stage { get; set; }
         public MembreDirection MembreDirection { get; set; }
     }

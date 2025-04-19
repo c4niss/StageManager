@@ -79,6 +79,13 @@ namespace StageManager.Models
         public NatureStage? NatureStage { get; set; }
 
         public DateTime DateCreation { get; set; } = DateTime.Now;
+        public Convention Convention { get; set; }
+        public int conventionId { get; set; }
+
+        public DateTime? DateSoumissionStagiaire { get; set; }
+
+        public bool RappelJour6Envoye { get; set; } = false;
+        public bool RappelJour7Envoye { get; set; } = false;
 
         // Relations avec annotation nullable pour correspondre aux clés étrangères
         public virtual Theme? Theme { get; set; }

@@ -13,6 +13,8 @@ using MailKit.Security;
 using MimeKit;
 using MimeKit.Text;
 using MailKit.Net.Smtp;
+using Microsoft.Extensions.DependencyInjection;
+using StageManager.BackgroundService;
 
 namespace StageManager.Controllers
 {
@@ -22,11 +24,15 @@ namespace StageManager.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _config;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger<DemandeaccordController> _logger;
 
-        public DemandeaccordController(AppDbContext context, IConfiguration config)
+        public DemandeaccordController(AppDbContext context, IConfiguration config, IServiceProvider serviceProvider, ILogger<DemandeaccordController> logger)
         {
             _context = context;
             _config = config;
+            _serviceProvider = serviceProvider;
+            _logger = logger;
         }
 
         // GET: api/Demandeaccord
@@ -38,6 +44,7 @@ namespace StageManager.Controllers
                 .Include(d => d.DemandeDeStage)
                 .Include(d => d.Theme)
                 .Include(d => d.Encadreur)
+                .Include(d => d.ChefDepartement)
                 .ToListAsync();
 
             return demandes.Select(d => DemandeAccordMapping.ToDto(d)).ToList();
@@ -60,42 +67,6 @@ namespace StageManager.Controllers
             }
 
             return DemandeAccordMapping.ToDto(demandeaccord);
-        }
-        // PUT: api/Demandeaccord/StagiaireUpdate/5
-        [HttpPut("StagiaireUpdate/{id}")]
-        public async Task<IActionResult> UpdateStagiaireDemandeaccord(int id, UpdateStagiaireDemandeaccordDto updateDto)
-        {
-            var demandeaccord = await _context.DemandesAccord.FindAsync(id);
-            if (demandeaccord == null)
-            {
-                return NotFound();
-            }
-
-            // Mettre à jour les propriétés du stagiaire
-            demandeaccord.UniversiteInstitutEcole = updateDto.UniversiteInstitutEcole;
-            demandeaccord.FiliereSpecialite = updateDto.FiliereSpecialite;
-            demandeaccord.Telephone = updateDto.Telephone;
-            demandeaccord.Email = updateDto.Email;
-            demandeaccord.DiplomeObtention = updateDto.DiplomeObtention;
-            demandeaccord.Nom = updateDto.Nom;
-            demandeaccord.Prenom = updateDto.Prenom;
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!DemandeaccordExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
         }
         // PUT: api/Demandeaccord/MembreDirectionUpdate/5
         [HttpPut("MembreDirectionUpdate/{id}")]
@@ -213,6 +184,27 @@ namespace StageManager.Controllers
                 // Envoi d'emails en fonction du statut
                 if (demandeaccord.Status == StatusAccord.Accepte)
                 {
+                    var existingconvention = await _context.Conventions
+                        .FirstOrDefaultAsync(a => a.DemandeAccordId == demandeaccord.Id);
+
+                    Convention convention;
+                    if (existingconvention == null)
+                    {
+                        convention = new Convention
+                        {
+                            DemandeAccordId = demandeaccord.Id,
+                            status = Convention.Statusconvention.EnCours,
+                            DemandeAccord = demandeaccord
+                        };
+                        _context.Conventions.Add(convention);
+                        await _context.SaveChangesAsync();
+                        demandeaccord.Convention = convention;
+                    }
+                    else
+                    {
+                        convention = existingconvention;
+                    }
+
                     foreach (var stagiaire in demandeaccord.stagiaires)
                     {
                         await EnvoyerEmailAsync(
@@ -221,6 +213,7 @@ namespace StageManager.Controllers
                             $"Bonjour {stagiaire.Prenom},\n\n" +
                             $"Votre demande d'accord de stage n°{demandeaccord.Id} a été acceptée.\n" +
                             "Nous vous prions de bien vouloir déposer votre convention auprès de la direction.\n\n" +
+                            $"votre numero de convention est {convention.Id}"+
                             "Cordialement,\nLe service des stages");
                     }
                 }
@@ -381,6 +374,87 @@ namespace StageManager.Controllers
         {
             return _context.DemandesAccord.Any(e => e.Id == id);
         }
+        // PUT: api/Demandeaccord/SubmitStagiairePart/5
+        [HttpPut("SubmitStagiairePart/{id}")]
+        public async Task<IActionResult> SubmitStagiairePart(int id, UpdateStagiaireDemandeaccordDto updateDto)
+        {
+            var demande = await _context.DemandesAccord
+                .Include(d => d.stagiaires)
+                .FirstOrDefaultAsync(d => d.Id == id);
+
+            if (demande == null)
+            {
+                return NotFound();
+            }
+            demande.UniversiteInstitutEcole = updateDto.UniversiteInstitutEcole;
+            demande.FiliereSpecialite = updateDto.FiliereSpecialite;
+            demande.Telephone = updateDto.Telephone;
+            demande.Email = updateDto.Email;
+            demande.DiplomeObtention = updateDto.DiplomeObtention;
+            demande.Nom = updateDto.Nom;
+            demande.Prenom = updateDto.Prenom;
+
+            if (!IsStagiairePartComplete(demande))
+            {
+                return BadRequest("La partie stagiaire n'est pas complète");
+            }
+
+            // Enregistrer la date de soumission
+            demande.DateSoumissionStagiaire = DateTime.Now;
+
+            await _context.SaveChangesAsync();
+            StartRappelService();
+            // Notifier le chef de département
+            if (demande.ChefDepartementId.HasValue)
+            {
+                var chef = await _context.ChefDepartements.FindAsync(demande.ChefDepartementId);
+                if (chef != null)
+                {
+                    await EnvoyerEmailAsync(
+                        chef.Email,
+                        "Nouvelle demande à valider",
+                        $"Bonjour {chef.Prenom},\n\n" +
+                        $"Une nouvelle demande d'accord (n°{demande.Id}) a été soumise par le stagiaire.\n" +
+                        "Merci de la traiter dans les délais.\n\n" +
+                        "Cordialement,\nLe service des stages");
+                }
+            }
+            StartRappelService();
+            return Ok("Partie stagiaire soumise avec succès");
+
+        }
+
+        private void StartRappelService()
+        {
+            // Récupère directement le service depuis le fournisseur de services
+            try
+            {
+                var scope = _serviceProvider.CreateScope();
+                var scopedServices = scope.ServiceProvider;
+
+                // Récupère le service s'il est déjà enregistré
+                var rappelService = _serviceProvider.GetService<IHostedService>()
+                    as RappelBackgroundService;
+
+                if (rappelService == null)
+                {
+                    // Si non, le crée et le démarre
+                    _logger.LogInformation("Démarrage du service de rappel");
+                    var backgroundService = ActivatorUtilities.CreateInstance<RappelBackgroundService>(
+                        scopedServices,
+                        scopedServices.GetRequiredService<ILogger<RappelBackgroundService>>(),
+                        _serviceProvider,
+                        _config);
+
+                    // Démarrage du service de façon asynchrone
+                    Task.Run(() => backgroundService.StartAsync(CancellationToken.None));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erreur lors du démarrage du service de rappel");
+            }
+        }
 
         private async Task EnvoyerEmailAsync(string destinataire, string sujet, string corps)
         {
@@ -407,6 +481,16 @@ namespace StageManager.Controllers
 
             await client.SendAsync(email);
             await client.DisconnectAsync(true);
+        }
+        private bool IsStagiairePartComplete(Demandeaccord demande)
+        {
+            return !string.IsNullOrEmpty(demande.Nom)
+                && !string.IsNullOrEmpty(demande.Prenom)
+                && !string.IsNullOrEmpty(demande.UniversiteInstitutEcole)
+                && !string.IsNullOrEmpty(demande.FiliereSpecialite)
+                && !string.IsNullOrEmpty(demande.Telephone)
+                && !string.IsNullOrEmpty(demande.Email)
+                && !string.IsNullOrEmpty(demande.DiplomeObtention);
         }
         private bool IsDemandeaccordComplete(Demandeaccord demandeaccord)
         {

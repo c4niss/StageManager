@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using MailKit.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using MimeKit.Text;
+using MimeKit;
 using StageManager.DTO.ConventionDTO;
 using StageManager.Mapping;
 using StageManager.Models;
@@ -19,10 +22,12 @@ namespace StageManager.Controllers
     public class ConventionController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _config;
 
-        public ConventionController(AppDbContext context)
+        public ConventionController(AppDbContext context, IConfiguration config)
         {
             _context = context;
+            _config = config;
         }
 
         // GET: api/Convention
@@ -67,41 +72,14 @@ namespace StageManager.Controllers
             return conventions.Select(c => c.ToDto()).ToList();
         }
 
-        [HttpPost]
-        public async Task<ActionResult<ConventionDto>> CreateConvention(CreateConventionDto createConventionDto)
-        {
-            var membreDirection = await _context.MembresDirection.FindAsync(createConventionDto.MembreDirectionId);
-            if (membreDirection == null)
-            {
-                return BadRequest("Le membre de direction spécifié n'existe pas.");
-            }
-
-            var convention = new Convention
-            {
-                DateDepot = createConventionDto.DateCreation,
-                CheminFichier = createConventionDto.CheminFichier,
-                status = Statusconvention.EnCours,
-                MembreDirectionId = createConventionDto.MembreDirectionId,
-                StageId = createConventionDto.StageId
-            };
-
-            _context.Conventions.Add(convention);
-            await _context.SaveChangesAsync();
-
-            // Recharger la convention avec les relations
-            convention = await _context.Conventions
-                .Include(c => c.Stage)
-                .Include(c => c.MembreDirection)
-                .FirstOrDefaultAsync(c => c.Id == convention.Id);
-
-            return CreatedAtAction(nameof(GetConvention), new { id = convention.Id }, convention.ToDto());
-        }
-
-        // PUT: api/Convention/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateConvention(int id, UpdateConventionDto updateConventionDto)
         {
-            var convention = await _context.Conventions.FindAsync(id);
+            var convention = await _context.Conventions
+                .Include(c => c.DemandeAccord)
+                .ThenInclude(d => d.stagiaires)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
             if (convention == null)
             {
                 return NotFound();
@@ -124,9 +102,80 @@ namespace StageManager.Controllers
                 convention.StageId = updateConventionDto.StageId;
             }
 
+            // Sauvegarde de l'ancien statut pour comparaison
+            var oldStatus = convention.status;
+
+            // Mise à jour des propriétés de base
             convention.CheminFichier = updateConventionDto.CheminFichier;
             convention.MembreDirectionId = updateConventionDto.MembreDirectionId;
             convention.status = updateConventionDto.Status;
+
+            // Logique spécifique si le statut a changé à Accepté
+            if (oldStatus != Statusconvention.Accepte && convention.status == Statusconvention.Accepte)
+            {
+                // Créer un nouveau Stage associé à cette convention
+                var demandeAccord = convention.DemandeAccord;
+
+                var newStage = new Stage
+                {
+                    StagiaireGroup = $"Groupe-{demandeAccord.Id}",
+                    DateDebut = demandeAccord.DateDebut ?? DateTime.Now,
+                    DateFin = demandeAccord.DateFin ?? DateTime.Now.AddMonths(3),
+                    Statut = StatutStage.EnCours,
+                    ConventionId = convention.Id,
+                    DepartementId = demandeAccord.ChefDepartement?.DepartementId ?? 1, // Utiliser un département par défaut si non spécifié
+                    EncadreurId = demandeAccord.EncadreurId ?? 1, // Utiliser un encadreur par défaut si non spécifié
+                    Stagiaires = new List<Stagiaire>()
+                };
+
+                // Ajouter les stagiaires de la demande d'accord au stage
+                if (demandeAccord.stagiaires != null && demandeAccord.stagiaires.Any())
+                {
+                    foreach (var stagiaire in demandeAccord.stagiaires)
+                    {
+                        stagiaire.Status = StagiaireStatus.Accepte; // Assurez-vous que cette propriété existe dans votre modèle Stagiaire
+                        newStage.Stagiaires.Add(stagiaire);
+
+                        // Envoyer email de confirmation du début de stage
+                        string sujet = "Confirmation du début de votre stage";
+                        string corps = $"Bonjour {stagiaire.Nom} {stagiaire.Prenom},\n\n" +
+                                      $"Nous avons le plaisir de vous informer que votre convention de stage a été acceptée. " +
+                                      $"Votre stage débutera le {newStage.DateDebut.ToString("dd/MM/yyyy")} et se terminera le {newStage.DateFin.ToString("dd/MM/yyyy")}.\n\n" +
+                                      $"Veuillez vous présenter au service d'accueil à la date de début pour finaliser les formalités administratives.\n\n" +
+                                      $"Cordialement,\nService des Stages";
+
+                        await EnvoyerEmailAsync(stagiaire.Email, sujet, corps);
+                    }
+                }
+
+                _context.Stages.Add(newStage);
+
+                // Mettre à jour l'ID du stage dans la convention
+                convention.StageId = newStage.Id;
+            }
+            // Logique spécifique si le statut a changé à Refusé
+            else if (oldStatus != Statusconvention.Refuse && convention.status == Statusconvention.Refuse)
+            {
+                // Mettre à jour le statut des stagiaires à "Refuse"
+                if (convention.DemandeAccord?.stagiaires != null && convention.DemandeAccord.stagiaires.Any())
+                {
+                    foreach (var stagiaire in convention.DemandeAccord.stagiaires)
+                    {
+                        stagiaire.Status = StagiaireStatus.Refuse; // Assurez-vous que cette propriété existe dans votre modèle Stagiaire
+                        stagiaire.EstActif = false;  // Désactiver le compte stagiaire
+
+                        // Envoyer email de refus
+                        string sujet = "Refus de votre demande de stage";
+                        string corps = $"Bonjour {stagiaire.Nom} {stagiaire.Prenom},\n\n" +
+                                      $"Nous regrettons de vous informer que votre convention de stage a été refusée. " +
+                                      $"Par conséquent, votre compte a été désactivé sur notre plateforme.\n\n" +
+                                      $"Pour toute information complémentaire, veuillez nous contacter par email.\n\n" +
+                                      $"Cordialement,\nService des Stages";
+
+                        await EnvoyerEmailAsync(stagiaire.Email, sujet, corps);
+                    }
+                }
+            }
 
             try
             {
@@ -163,6 +212,37 @@ namespace StageManager.Controllers
             return NoContent();
         }
 
+        private async Task EnvoyerEmailAsync(string destinataire, string sujet, string corps)
+        {
+            var email = new MimeMessage();
+            email.From.Add(new MailboxAddress("Service des Stages", _config["Email:From"]));
+            email.To.Add(new MailboxAddress("", destinataire));
+            email.Subject = sujet;
+
+            email.Body = new TextPart(TextFormat.Plain)
+            {
+                Text = corps
+            };
+
+            using var client = new MailKit.Net.Smtp.SmtpClient();
+
+            await client.ConnectAsync(
+                _config["Email:Host"],
+                int.Parse(_config["Email:Port"]),
+                SecureSocketOptions.StartTls);
+
+            await client.AuthenticateAsync(
+                _config["Email:Username"],
+                _config["Email:Password"]);
+
+            await client.SendAsync(email);
+            await client.DisconnectAsync(true);
+        }
+
+        private string GetAccordFormLink(int accordId)
+        {
+            return $"{_config["Frontend:BaseUrl"]}/accord/{accordId}/completer";
+        }
 
         private bool ConventionExists(int id)
         {
