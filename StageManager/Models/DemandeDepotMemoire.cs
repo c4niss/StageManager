@@ -17,18 +17,27 @@ namespace StageManager.Models
         public int Id { get; set; }
 
         [Required]
-        public DateTime DateDemande { get; set; } = DateTime.UtcNow;
-
+        public DateTime DateDemande { get; set; } = DateTime.Now;
         [Required]
         public StatutDepotMemoire Statut { get; set; } = StatutDepotMemoire.EnAttente;
 
+        // Informations sur le thème du mémoire
         [Required]
-        [StringLength(255, ErrorMessage = "Le chemin du fichier ne peut dépasser 255 caractères")]
-        public string CheminFichier { get; set; }
+        [StringLength(200, ErrorMessage = "Le thème ne peut dépasser 200 caractères")]
+        public Theme Theme { get; set; }
+        public int themeId { get; set; }
+        // Informations sur l'étudiant
+        [Required]
+        [StringLength(100)]
+        public string NomPrenomEtudiants { get; set; }
 
-        [StringLength(500, ErrorMessage = "Le commentaire ne peut dépasser 500 caractères")]
-        public string Commentaire { get; set; }
-
+        // Informations sur l'encadreur
+        [Required]
+        [StringLength(100)]
+        public string NomPrenomEncadreur { get; set; }
+        [DataType(DataType.Date)]
+        public DateTime? DateValidation { get; set; }
+        // Relations
         [Required]
         [ForeignKey("Stage")]
         public int StageId { get; set; }
@@ -36,9 +45,11 @@ namespace StageManager.Models
         [ForeignKey("MembreDirection")]
         public int? MembreDirectionId { get; set; }
 
-        // Navigation properties
-        public Stage Stage { get; set; }
-        public MembreDirection MembreDirection { get; set; }
-        public Memoire Memoire { get; set; }
+        [ForeignKey("Encadreur")]
+        public int EncadreurId { get; set; }
+        public virtual Stage Stage { get; set; }
+        public virtual MembreDirection MembreDirection { get; set; }
+        public virtual Encadreur Encadreur { get; set; }
+        public virtual Memoire Memoire { get; set; }
     }
 }

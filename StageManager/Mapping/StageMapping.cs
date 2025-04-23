@@ -35,7 +35,7 @@ namespace StageManager.Mapping
                 StagiaireGroup = dto.StagiaireGroup,
                 DateDebut = dto.DateDebut,
                 DateFin = dto.DateFin,
-                Statut = StatutStage.EnAttente,
+                Statut = StatutStage.EnCours,
                 ConventionId = dto.ConventionId,
                 DepartementId = dto.DepartementId,
                 EncadreurId = dto.EncadreurId

@@ -24,6 +24,7 @@ namespace StageManager.DTO.MembreDirectionDTO
         [Phone]
         [StringLength(20)]
         public string Telephone { get; set; }
+        public string Fonction { get; set; }
 
     }
 }

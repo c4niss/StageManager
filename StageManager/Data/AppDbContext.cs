@@ -130,6 +130,12 @@ namespace TestRestApi.Data
                 .HasForeignKey<FicheEvaluationStagiaire>(f => f.StagiaireId)
                 .HasPrincipalKey<Stagiaire>(s => s.Id) // Référence Utilisateurs.Id
                 .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<DemandeDepotMemoire>()
+                .HasOne(d => d.Encadreur)
+                .WithMany()
+                .HasForeignKey(d => d.EncadreurId)
+                .OnDelete(DeleteBehavior.NoAction);
+
         }
 
     }

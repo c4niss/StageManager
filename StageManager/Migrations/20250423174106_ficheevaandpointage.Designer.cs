@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TestRestApi.Data;
 
@@ -11,9 +12,11 @@ using TestRestApi.Data;
 namespace StageManager.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250423174106_ficheevaandpointage")]
+    partial class ficheevaandpointage
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -186,27 +189,21 @@ namespace StageManager.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("CheminFichier")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Commentaire")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<DateTime>("DateDemande")
                         .HasColumnType("datetime2");
 
-                    b.Property<DateTime?>("DateValidation")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("EncadreurId")
-                        .HasColumnType("int");
-
                     b.Property<int?>("MembreDirectionId")
                         .HasColumnType("int");
-
-                    b.Property<string>("NomPrenomEncadreur")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("NomPrenomEtudiants")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("StageId")
                         .HasColumnType("int");
@@ -214,18 +211,11 @@ namespace StageManager.Migrations
                     b.Property<int>("Statut")
                         .HasColumnType("int");
 
-                    b.Property<int>("themeId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
-
-                    b.HasIndex("EncadreurId");
 
                     b.HasIndex("MembreDirectionId");
 
                     b.HasIndex("StageId");
-
-                    b.HasIndex("themeId");
 
                     b.ToTable("DemandesDepotMemoire");
                 });
@@ -729,7 +719,7 @@ namespace StageManager.Migrations
                     b.Property<int>("StageId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Titre")
+                    b.Property<string>("Title")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -1109,12 +1099,6 @@ namespace StageManager.Migrations
 
             modelBuilder.Entity("StageManager.Models.DemandeDepotMemoire", b =>
                 {
-                    b.HasOne("StageManager.Models.Encadreur", "Encadreur")
-                        .WithMany()
-                        .HasForeignKey("EncadreurId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
                     b.HasOne("StageManager.Models.MembreDirection", "MembreDirection")
                         .WithMany()
                         .HasForeignKey("MembreDirectionId");
@@ -1125,19 +1109,9 @@ namespace StageManager.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("StageManager.Models.Theme", "Theme")
-                        .WithMany()
-                        .HasForeignKey("themeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Encadreur");
-
                     b.Navigation("MembreDirection");
 
                     b.Navigation("Stage");
-
-                    b.Navigation("Theme");
                 });
 
             modelBuilder.Entity("StageManager.Models.Demandeaccord", b =>

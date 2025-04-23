@@ -239,7 +239,7 @@ namespace StageManager.Controllers
 
             // Vérifier si le stagiaire est associé à un stage actif
             if (stagiaire.Stage != null &&
-                (stagiaire.Stage.Statut == StatutStage.EnAttente ||
+                (
                  stagiaire.Stage.Statut == StatutStage.EnCours ||
                  stagiaire.Stage.Statut == StatutStage.Prolonge))
             {

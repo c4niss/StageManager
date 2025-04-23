@@ -5,26 +5,34 @@ namespace StageManager.Models
 {
     public class FicheDePointage
     {
+    
         [Key]
         public int Id { get; set; }
+        [Required]
+        public DateTime DateCreation { get; set; } = new DateTime(2017, 01, 03);
+        [Required]
+        public string NomPrenomStagiaire { get; set; }
 
         [Required]
-        public DateTime DateDebut { get; set; }
+        public string StructureAccueil { get; set; }
 
         [Required]
-        public DateTime DateFin { get; set; }
+        public string NomQualitePersonneChargeSuivi { get; set; }
 
         [Required]
-        [Range(0, 999)]
-        public int HeureEffectuees { get; set; }
-
-        [StringLength(500)]
-        public string Commentaire { get; set; }
+        [DataType(DataType.Date)]
+        public DateTime DateDebutStage { get; set; }
 
         [Required]
-        [StringLength(20)]
-        public string Status { get; set; }
+        [DataType(DataType.Date)]
+        public DateTime DateFinStage { get; set; }
 
+        public NatureStage NatureStage { get; set; }
+
+        // Données de pointage (stockées sous forme de JSON ou autre format approprié)  
+        public string DonneesPointage { get; set; }
+        public bool EstValide { get; set; }
+        // Relations  
         [Required]
         [ForeignKey("Stagiaire")]
         public int StagiaireId { get; set; }
@@ -32,7 +40,13 @@ namespace StageManager.Models
         [Required]
         [ForeignKey("Encadreur")]
         public int EncadreurId { get; set; }
-        public Stagiaire Stagiaire { get; set; }
-        public Encadreur Encadreur { get; set; }
+
+        [Required]
+        [ForeignKey("Stage")]
+        public int StageId { get; set; }
+
+        public virtual Stagiaire Stagiaire { get; set; }
+        public virtual Encadreur Encadreur { get; set; }
+        public virtual Stage Stage { get; set; }
     }
 }

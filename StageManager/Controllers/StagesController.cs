@@ -128,7 +128,7 @@ namespace StageManager.Controllers
                 StagiaireGroup = dto.StagiaireGroup,
                 DateDebut = dto.DateDebut,
                 DateFin = dto.DateFin,
-                Statut = StatutStage.EnAttente,
+                Statut = StatutStage.EnCours,
                 ConventionId = dto.ConventionId,
                 DepartementId = dto.DepartementId,
                 EncadreurId = dto.EncadreurId
@@ -353,6 +353,67 @@ namespace StageManager.Controllers
                 .Include(s => s.Departement)
                 .Include(s => s.Stagiaires)
                 .Where(s => s.DepartementId == departementId)
+                .ToListAsync();
+
+            if (!stages.Any())
+            {
+                return new List<StageDto>();
+            }
+
+            return stages.Select(s => new StageDto
+            {
+                Id = s.Id,
+                StagiaireGroup = s.StagiaireGroup,
+                DateDebut = s.DateDebut,
+                DateFin = s.DateFin,
+                Statut = s.Statut,
+                ConventionId = s.ConventionId,
+                DepartementId = s.DepartementId,
+                DepartementNom = s.Departement?.Nom,
+                EncadreurId = s.EncadreurId,
+                EncadreurNomComplet = $"{s.Encadreur?.Nom} {s.Encadreur?.Prenom}",
+                Stagiaires = s.Stagiaires?.Select(st => new StagiaireInfoDto
+                {
+                    Id = st.Id,
+                    NomComplet = $"{st.Nom} {st.Prenom}",
+                    Email = st.Email
+                }).ToList()
+            }).ToList();
+        }
+        // GET: api/Stage/Search?query=informatique
+        [HttpGet("Search")]
+        public async Task<ActionResult<IEnumerable<StageDto>>> SearchStages(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return BadRequest("Le terme de recherche ne peut pas être vide.");
+            }
+
+            // Normaliser la requête pour la recherche
+            query = query.ToLower().Trim();
+
+            var stages = await _context.Stages
+                .Include(s => s.Encadreur)
+                .Include(s => s.Departement)
+                .Include(s => s.Stagiaires)
+                .Include(s => s.Convention)
+                    .ThenInclude(c => c.DemandeAccord)
+                        .ThenInclude(da => da.Theme)
+                .Where(s =>
+                    // Recherche dans le groupe de stagiaires
+                    s.StagiaireGroup.ToLower().Contains(query) ||
+                    // Recherche dans le nom du département
+                    s.Departement.Nom.ToLower().Contains(query) ||
+                    // Recherche dans le nom/prénom de l'encadreur
+                    (s.Encadreur.Nom + " " + s.Encadreur.Prenom).ToLower().Contains(query) ||
+                    // Recherche dans le thème associé au stage via la convention et la demande d'accord
+                    (s.Convention != null && s.Convention.DemandeAccord != null &&
+                     s.Convention.DemandeAccord.Theme != null &&
+                     s.Convention.DemandeAccord.Theme.Nom.ToLower().Contains(query)) ||
+                    // Recherche dans les noms des stagiaires
+                    s.Stagiaires.Any(st => (st.Nom + " " + st.Prenom).ToLower().Contains(query) ||
+                                           st.Email.ToLower().Contains(query))
+                )
                 .ToListAsync();
 
             if (!stages.Any())

@@ -11,7 +11,7 @@ namespace StageManager.Models
 
         [Required]
         [StringLength(200)]
-        public string Title { get; set; }
+        public string Titre { get; set; }
 
         [Required]
         [StringLength(255)]

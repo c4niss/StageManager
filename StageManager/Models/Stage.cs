@@ -21,7 +21,7 @@ namespace StageManager.Models
         public DateTime DateFin { get; set; }
 
         [Required]
-        public StatutStage Statut { get; set; } = StatutStage.EnAttente;
+        public StatutStage Statut { get; set; } = StatutStage.EnCours;
 
         // Relations modifiées
         [ForeignKey("Convention")]
