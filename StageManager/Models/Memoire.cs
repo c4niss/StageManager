@@ -18,7 +18,7 @@ namespace StageManager.Models
         public string CheminFichier { get; set; }
 
         [Required]
-        public DateTime DateDepot { get; set; } = DateTime.UtcNow;
+        public DateTime DateDepot { get; set; } = DateTime.Now;
 
         // Modification des clés étrangères
         [ForeignKey("DemandeDepotMemoire")]
