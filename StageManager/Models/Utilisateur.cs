@@ -32,8 +32,5 @@ namespace StageManager.Models
         public DateTime DateCreation { get; set; } = System.DateTime.Now;
         [Required]
         public bool EstActif { get; set; }
-        [StringLength(255)]
-        public string PhotoUrl { get; set; }
-
     }
 }

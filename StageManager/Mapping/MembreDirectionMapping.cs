@@ -15,7 +15,6 @@ namespace StageManager.Mapping
                 Email = membre.Email,
                 Telephone = membre.Telephone,
                 Fonction = membre.Fonction,
-                PhotoUrl = membre.PhotoUrl,
                 DatePrisePoste = membre.DatePrisePoste
             };
         }
@@ -29,7 +28,6 @@ namespace StageManager.Mapping
                 Email = dto.Email,
                 Telephone = null, // ou une valeur par défaut si nécessaire
                 Fonction = dto.Fonction,
-                PhotoUrl = null, // ou une valeur par défaut si nécessaire
                 MotDePasse = dto.MotDePasse, // Doit être hashé dans le contrôleur
                 Role = "MembreDirection",
                 DatePrisePoste = DateTime.Now,

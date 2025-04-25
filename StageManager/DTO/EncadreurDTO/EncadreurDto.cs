@@ -25,9 +25,6 @@
 
         [Phone]
         public string Telephone { get; set; }
-        [StringLength(50)]
-        public string PhotoUrl { get; set; }
-
         [StringLength(100)]
         public string Fonction { get; set; }
 

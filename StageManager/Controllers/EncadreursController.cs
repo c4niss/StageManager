@@ -83,7 +83,6 @@ namespace StageManager.Controllers
                 Email = createDto.Email,
                 Telephone = createDto.Telephone,
                 MotDePasse = HashPassword(createDto.MotDePasse),
-                PhotoUrl = createDto.PhotoUrl,
                 DepartementId = createDto.DepartementId,
                 DomaineId = createDto.DomaineId,
                 EstDisponible = true,

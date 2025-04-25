@@ -20,12 +20,7 @@ namespace StageManager.DTO.ChefDepartementDTO
 
         [StringLength(255)]
         public string MotDePasse { get; set; }
-
-        [StringLength(255)]
-        public string PhotoUrl { get; set; }
-
         public int? DepartementId { get; set; }
-
         public bool? EstActif { get; set; }
     }
 }

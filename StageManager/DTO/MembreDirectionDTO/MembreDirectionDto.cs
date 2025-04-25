@@ -27,9 +27,6 @@ namespace StageManager.DTO.MembreDirectionDTO
         [Required]
         [StringLength(100)]
         public string Fonction { get; set; }
-        [StringLength(255)]
-        public string PhotoUrl { get; set; }
-
         [Required]
         [DataType(DataType.DateTime)]
         public DateTime DatePrisePoste { get; set; } = DateTime.UtcNow;

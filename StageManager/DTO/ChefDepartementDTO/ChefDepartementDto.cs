@@ -22,6 +22,5 @@ namespace StageManager.DTO.ChefDepartementDTO
         public int DepartementId { get; set; }
         public string DepartementNom { get; set; }
         public bool EstActif { get; set; }
-        public string PhotoUrl { get; set; }
     }
 }

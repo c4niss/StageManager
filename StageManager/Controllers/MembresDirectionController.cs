@@ -76,7 +76,6 @@ namespace StageManager.Controllers
                 Email = membredirectiondto.Email,
                 Telephone = membredirectiondto.Telephone,
                 Fonction = membredirectiondto.Fonction,
-                PhotoUrl = membredirectiondto.PhotoUrl,
                 Username = membredirectiondto.Username,
                 MotDePasse = passwordHasher.HashPassword(null, membredirectiondto.MotDePasse),
                 Role = "MembreDirection",
@@ -134,8 +133,6 @@ namespace StageManager.Controllers
             if (!string.IsNullOrEmpty(updateDto.Fonction))
                 membreDirection.Fonction = updateDto.Fonction;
 
-            if (!string.IsNullOrEmpty(updateDto.PhotoUrl))
-                membreDirection.PhotoUrl = updateDto.PhotoUrl;
 
             // Mise à jour du mot de passe seulement si fourni
             if (!string.IsNullOrEmpty(updateDto.MotDePasse))

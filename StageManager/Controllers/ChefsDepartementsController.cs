@@ -65,15 +65,15 @@ namespace StageManager.Controllers
                 Email = createDto.Email,
                 Telephone = createDto.Telephone,
                 MotDePasse = HashPassword(createDto.MotDePasse),
-                PhotoUrl = createDto.PhotoUrl,
                 DepartementId = createDto.DepartementId,
                 EstActif = createDto.EstActif,
                 Role = "Chef Departement"
             };
-
             _context.ChefDepartements.Add(chefDepartement);
             await _context.SaveChangesAsync();
 
+            departement.ChefDepartementId = chefDepartement.Id;
+            await _context.SaveChangesAsync();
             return CreatedAtAction(nameof(GetChefDepartement), new { id = chefDepartement.Id }, chefDepartement.ToDto());
         }
 
@@ -91,7 +91,6 @@ namespace StageManager.Controllers
             chef.Email = updateDto.Email;
             chef.Telephone = updateDto.Telephone;
             chef.MotDePasse = HashPassword(updateDto.MotDePasse);
-            chef.PhotoUrl = updateDto.PhotoUrl;
 
             if (updateDto.DepartementId.HasValue)
             {

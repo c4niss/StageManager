@@ -16,7 +16,6 @@ namespace StageManager.Mapping
                 Username = encadreur.Username,
                 Telephone = encadreur.Telephone,
                 Fonction = encadreur.Fonction,
-                PhotoUrl = encadreur.PhotoUrl ?? string.Empty,
                 EstDisponible = encadreur.EstDisponible,
                 NbrStagiaires = encadreur.NbrStagiaires,
                 StagiaireMax = encadreur.StagiaireMax,

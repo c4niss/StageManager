@@ -17,7 +17,6 @@ namespace StageManager.Mapping
                 Email = chef.Email,
                 Telephone = chef.Telephone ?? string.Empty,
                 EstActif = chef.EstActif,
-                PhotoUrl = chef.PhotoUrl ?? string.Empty,
                 DepartementId = chef.DepartementId,
                 DepartementNom = chef.Departement?.Nom ?? string.Empty,
             };

@@ -100,10 +100,24 @@ namespace StageManager.Controllers
             return NoContent();
         }
 
-        // DELETE: api/Departements/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteDepartement(int id)
         {
+            // Find all dependent DemandesAccord records
+            var demandesAccord = await _context.DemandesAccord
+                .Where(d => d.ChefDepartementId == id)
+                .ToListAsync();
+
+            // Set ChefDepartementId to null
+            foreach (var demande in demandesAccord)
+            {
+                demande.ChefDepartementId = null;
+            }
+
+            // Save changes to DemandesAccord
+            await _context.SaveChangesAsync();
+
+            // Now delete the department
             var departement = await _context.Departements.FindAsync(id);
             if (departement == null)
             {
@@ -115,6 +129,10 @@ namespace StageManager.Controllers
 
             return NoContent();
         }
+
+
+
+
 
         private bool DepartementExists(int id)
         {

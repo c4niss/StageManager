@@ -32,9 +32,6 @@ namespace StageManager.DTO.StagiaireDTO
         [Required]
         [StringLength(100)]
         public string Specialite { get; set; }
-
-        [StringLength(255)]
-        public string PhotoUrl { get; set; }
         public StagiaireStatus Status { get; set; }
     }
 }

@@ -135,6 +135,11 @@ namespace TestRestApi.Data
                 .WithMany()
                 .HasForeignKey(d => d.EncadreurId)
                 .OnDelete(DeleteBehavior.NoAction);
+            modelBuilder.Entity<Demandeaccord>()
+                .HasOne(d => d.ChefDepartement)
+                .WithMany()
+                .HasForeignKey(d => d.ChefDepartementId)
+                .OnDelete(DeleteBehavior.SetNull);
 
         }
 

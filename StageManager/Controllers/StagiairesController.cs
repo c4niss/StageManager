@@ -87,7 +87,6 @@ namespace StageManager.Controllers
                 EstActif = true,
                 Username = stagiaireDto.Username,
                 Specialite = stagiaireDto.Specialite,
-                PhotoUrl = stagiaireDto.PhotoUrl,
                 Status = StagiaireStatus.EnCour,
                 DateCreation = DateTime.Now
             };
@@ -141,10 +140,6 @@ namespace StageManager.Controllers
 
             if (!string.IsNullOrEmpty(stagiaireDto.Specialite))
                 stagiaire.Specialite = stagiaireDto.Specialite;
-
-            if (!string.IsNullOrEmpty(stagiaireDto.PhotoUrl))
-                stagiaire.PhotoUrl = stagiaireDto.PhotoUrl;
-
             stagiaire.Status = stagiaireDto.Status;
 
             try
