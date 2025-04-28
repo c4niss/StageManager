@@ -12,8 +12,8 @@ using TestRestApi.Data;
 namespace StageManager.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250418173548_allproject")]
-    partial class allproject
+    [Migration("20250428153502_all")]
+    partial class all
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -132,7 +132,8 @@ namespace StageManager.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DemandeAccordId");
+                    b.HasIndex("DemandeAccordId")
+                        .IsUnique();
 
                     b.HasIndex("MembreDirectionId");
 
@@ -188,21 +189,27 @@ namespace StageManager.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("CheminFichier")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("Commentaire")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
                     b.Property<DateTime>("DateDemande")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("DateValidation")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EncadreurId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("MembreDirectionId")
                         .HasColumnType("int");
+
+                    b.Property<string>("NomPrenomEncadreur")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("NomPrenomEtudiants")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("StageId")
                         .HasColumnType("int");
@@ -210,11 +217,18 @@ namespace StageManager.Migrations
                     b.Property<int>("Statut")
                         .HasColumnType("int");
 
+                    b.Property<int>("themeId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("EncadreurId");
 
                     b.HasIndex("MembreDirectionId");
 
                     b.HasIndex("StageId");
+
+                    b.HasIndex("themeId");
 
                     b.ToTable("DemandesDepotMemoire");
                 });
@@ -237,6 +251,9 @@ namespace StageManager.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("DateFin")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateSoumissionStagiaire")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("DemandeStageId")
@@ -274,6 +291,12 @@ namespace StageManager.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("RappelJour6Envoye")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("RappelJour7Envoye")
+                        .HasColumnType("bit");
+
                     b.Property<string>("ServiceAccueil")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
@@ -294,6 +317,9 @@ namespace StageManager.Migrations
                     b.Property<string>("UniversiteInstitutEcole")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("conventionId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -324,8 +350,6 @@ namespace StageManager.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ChefDepartementId");
 
                     b.ToTable("Departements");
                 });
@@ -361,34 +385,51 @@ namespace StageManager.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Commentaire")
+                    b.Property<DateTime>("DateCreation")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DateDebutStage")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DateFinStage")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DonneesPointage")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("DateDebut")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("DateFin")
-                        .HasColumnType("datetime2");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("EncadreurId")
                         .HasColumnType("int");
 
-                    b.Property<int>("HeureEffectuees")
+                    b.Property<bool>("EstValide")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("NatureStage")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NomPrenomStagiaire")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NomQualitePersonneChargeSuivi")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("StageId")
                         .HasColumnType("int");
 
                     b.Property<int>("StagiaireId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Status")
+                    b.Property<string>("StructureAccueil")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("EncadreurId");
+
+                    b.HasIndex("StageId");
 
                     b.HasIndex("StagiaireId")
                         .IsUnique();
@@ -404,13 +445,108 @@ namespace StageManager.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("AccepteExpressionPointsVueDifferents")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CommuniqueClairementSimplement")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CritiqueConstructive")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DateCreation")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DateDebutStage")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("DateEvaluation")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DateFinStage")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DemontreInteretRecherche")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EfficaceGestionSupervision")
+                        .HasColumnType("int");
 
                     b.Property<int>("EncadreurId")
                         .HasColumnType("int");
 
+                    b.Property<int>("EncourageInitiativesEtudiants")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EnseigneFaitDemonstrations")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ExpliqueClairementContenu")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FixeObjectifsClairs")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FonctionEncadreur")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("GereImprevus")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InterrogeEtudiantsFeedback")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InterrogeEtudiantsTravailEffectue")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InviteEtudiantsQuestions")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaintientAttitudeProfessionnelle")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MaitriseConnaissances")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MontreImportanceSujetTraite")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NomPrenomEncadreur")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NomPrenomStagiaireEvaluateur")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Observations")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("OrganiseEtapesRecherche")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OrienteEtudiantsRessourcesPertinentes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PondereQuantiteInformation")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProdigueEncouragementsFeedback")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RencontreRegulierementEtudiants")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RepondQuestionsEtudiants")
+                        .HasColumnType("int");
+
                     b.Property<int>("StageId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TransmetDonneesFiables")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -430,10 +566,113 @@ namespace StageManager.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("AdaptationOrganisationMethodesTravail")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AnalyseExplicationSynthese")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ApplicationConnaissancesNouvelles")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AppreciationGlobaleTuteur")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("AppreciationRenduTravail")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Aptitudes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CapaciteApprendreComprendre")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Communication")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CompetencesGenerales")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ComprehensionTravaux")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DateCreation")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("DateEvaluation")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("DisponibiliteMotivationEngagement")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DureeStage")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("EncadreurId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FonctionEncadreur")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FormationStagiaire")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("IntegrationSeinService")
+                        .HasColumnType("int");
+
+                    b.Property<int>("MethodeOrganisationTravail")
+                        .HasColumnType("int");
+
+                    b.Property<string>("MissionsConfieesAuStagiaire")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("NiveauConnaissances")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NomPrenomEncadreur")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NomPrenomEvaluateur")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NomPrenomStagiaire")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("NombreSeancesPrevues")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Observations")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("PeriodeAu")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PeriodeDu")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PonctualiteAssiduite")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RealisationMissionsConfiees")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RechercheInformations")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RespectDelaisProcedures")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RigueurSerieux")
                         .HasColumnType("int");
 
                     b.Property<int>("StageId")
@@ -442,10 +681,19 @@ namespace StageManager.Migrations
                     b.Property<int>("StagiaireId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Status")
+                    b.Property<string>("StructureAccueil")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ThemeStage")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TravailEquipe")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UtilisationMoyensMisDisposition")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -458,6 +706,38 @@ namespace StageManager.Migrations
                         .IsUnique();
 
                     b.ToTable("FichesEvaluationStagiaire");
+                });
+
+            modelBuilder.Entity("StageManager.Models.JourPresence", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Commentaire")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("EstPresent")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Jour")
+                        .HasColumnType("int");
+
+                    b.Property<int>("JourSemaine")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PointageMoisId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PointageMoisId");
+
+                    b.ToTable("jourPresences");
                 });
 
             modelBuilder.Entity("StageManager.Models.Memoire", b =>
@@ -482,7 +762,7 @@ namespace StageManager.Migrations
                     b.Property<int>("StageId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Title")
+                    b.Property<string>("Titre")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -496,6 +776,32 @@ namespace StageManager.Migrations
                         .IsUnique();
 
                     b.ToTable("Memoires");
+                });
+
+            modelBuilder.Entity("StageManager.Models.PointageMois", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Annee")
+                        .HasColumnType("int");
+
+                    b.Property<int>("FicheDePointageId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Mois")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FicheDePointageId");
+
+                    b.ToTable("PointageMois");
                 });
 
             modelBuilder.Entity("StageManager.Models.Stage", b =>
@@ -614,11 +920,6 @@ namespace StageManager.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("PhotoUrl")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
                     b.Property<string>("Prenom")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -655,6 +956,13 @@ namespace StageManager.Migrations
                     b.UseTphMappingStrategy();
                 });
 
+            modelBuilder.Entity("StageManager.Models.Admin", b =>
+                {
+                    b.HasBaseType("StageManager.Models.Utilisateur");
+
+                    b.HasDiscriminator().HasValue("Admin");
+                });
+
             modelBuilder.Entity("StageManager.Models.ChefDepartement", b =>
                 {
                     b.HasBaseType("StageManager.Models.Utilisateur");
@@ -662,7 +970,9 @@ namespace StageManager.Migrations
                     b.Property<int>("DepartementId")
                         .HasColumnType("int");
 
-                    b.HasIndex("DepartementId");
+                    b.HasIndex("DepartementId")
+                        .IsUnique()
+                        .HasFilter("[DepartementId] IS NOT NULL");
 
                     b.ToTable("Utilisateurs", t =>
                         {
@@ -816,8 +1126,8 @@ namespace StageManager.Migrations
             modelBuilder.Entity("StageManager.Models.Convention", b =>
                 {
                     b.HasOne("StageManager.Models.Demandeaccord", "DemandeAccord")
-                        .WithMany()
-                        .HasForeignKey("DemandeAccordId")
+                        .WithOne("Convention")
+                        .HasForeignKey("StageManager.Models.Convention", "DemandeAccordId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -862,6 +1172,12 @@ namespace StageManager.Migrations
 
             modelBuilder.Entity("StageManager.Models.DemandeDepotMemoire", b =>
                 {
+                    b.HasOne("StageManager.Models.Encadreur", "Encadreur")
+                        .WithMany()
+                        .HasForeignKey("EncadreurId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("StageManager.Models.MembreDirection", "MembreDirection")
                         .WithMany()
                         .HasForeignKey("MembreDirectionId");
@@ -872,9 +1188,19 @@ namespace StageManager.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("StageManager.Models.Theme", "Theme")
+                        .WithMany()
+                        .HasForeignKey("themeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Encadreur");
+
                     b.Navigation("MembreDirection");
 
                     b.Navigation("Stage");
+
+                    b.Navigation("Theme");
                 });
 
             modelBuilder.Entity("StageManager.Models.Demandeaccord", b =>
@@ -900,15 +1226,6 @@ namespace StageManager.Migrations
                     b.Navigation("Encadreur");
                 });
 
-            modelBuilder.Entity("StageManager.Models.Departement", b =>
-                {
-                    b.HasOne("StageManager.Models.ChefDepartement", "ChefDepartement")
-                        .WithMany()
-                        .HasForeignKey("ChefDepartementId");
-
-                    b.Navigation("ChefDepartement");
-                });
-
             modelBuilder.Entity("StageManager.Models.Domaine", b =>
                 {
                     b.HasOne("StageManager.Models.Departement", "Departement")
@@ -928,6 +1245,12 @@ namespace StageManager.Migrations
                         .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
+                    b.HasOne("StageManager.Models.Stage", "Stage")
+                        .WithMany()
+                        .HasForeignKey("StageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("StageManager.Models.Stagiaire", "Stagiaire")
                         .WithOne("FicheDePointage")
                         .HasForeignKey("StageManager.Models.FicheDePointage", "StagiaireId")
@@ -935,6 +1258,8 @@ namespace StageManager.Migrations
                         .IsRequired();
 
                     b.Navigation("Encadreur");
+
+                    b.Navigation("Stage");
 
                     b.Navigation("Stagiaire");
                 });
@@ -985,6 +1310,17 @@ namespace StageManager.Migrations
                     b.Navigation("Stagiaire");
                 });
 
+            modelBuilder.Entity("StageManager.Models.JourPresence", b =>
+                {
+                    b.HasOne("StageManager.Models.PointageMois", "PointageMois")
+                        .WithMany("JoursPresence")
+                        .HasForeignKey("PointageMoisId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PointageMois");
+                });
+
             modelBuilder.Entity("StageManager.Models.Memoire", b =>
                 {
                     b.HasOne("StageManager.Models.DemandeDepotMemoire", "DemandeDepotMemoire")
@@ -1002,6 +1338,17 @@ namespace StageManager.Migrations
                     b.Navigation("DemandeDepotMemoire");
 
                     b.Navigation("Stage");
+                });
+
+            modelBuilder.Entity("StageManager.Models.PointageMois", b =>
+                {
+                    b.HasOne("StageManager.Models.FicheDePointage", "FicheDePointage")
+                        .WithMany("PointageMois")
+                        .HasForeignKey("FicheDePointageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FicheDePointage");
                 });
 
             modelBuilder.Entity("StageManager.Models.Stage", b =>
@@ -1051,10 +1398,9 @@ namespace StageManager.Migrations
             modelBuilder.Entity("StageManager.Models.ChefDepartement", b =>
                 {
                     b.HasOne("StageManager.Models.Departement", "Departement")
-                        .WithMany()
-                        .HasForeignKey("DepartementId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .WithOne("ChefDepartement")
+                        .HasForeignKey("StageManager.Models.ChefDepartement", "DepartementId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Departement");
                 });
@@ -1110,6 +1456,9 @@ namespace StageManager.Migrations
 
             modelBuilder.Entity("StageManager.Models.Demandeaccord", b =>
                 {
+                    b.Navigation("Convention")
+                        .IsRequired();
+
                     b.Navigation("Theme");
 
                     b.Navigation("stagiaires");
@@ -1117,6 +1466,9 @@ namespace StageManager.Migrations
 
             modelBuilder.Entity("StageManager.Models.Departement", b =>
                 {
+                    b.Navigation("ChefDepartement")
+                        .IsRequired();
+
                     b.Navigation("Domaines");
 
                     b.Navigation("Encadreurs");
@@ -1129,6 +1481,16 @@ namespace StageManager.Migrations
                     b.Navigation("Stages");
 
                     b.Navigation("Themes");
+                });
+
+            modelBuilder.Entity("StageManager.Models.FicheDePointage", b =>
+                {
+                    b.Navigation("PointageMois");
+                });
+
+            modelBuilder.Entity("StageManager.Models.PointageMois", b =>
+                {
+                    b.Navigation("JoursPresence");
                 });
 
             modelBuilder.Entity("StageManager.Models.Stage", b =>

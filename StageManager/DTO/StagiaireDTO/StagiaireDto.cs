@@ -33,5 +33,6 @@ namespace StageManager.DTO.StagiaireDTO
         [StringLength(100)]
         public string Specialite { get; set; }
         public StagiaireStatus Status { get; set; }
+        public bool EstActif { get; set; }
     }
 }

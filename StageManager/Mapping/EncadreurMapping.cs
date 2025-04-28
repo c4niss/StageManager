@@ -19,6 +19,7 @@ namespace StageManager.Mapping
                 EstDisponible = encadreur.EstDisponible,
                 NbrStagiaires = encadreur.NbrStagiaires,
                 StagiaireMax = encadreur.StagiaireMax,
+                EstActif = encadreur.EstActif,
                 DepartementId = encadreur.DepartementId,
                 DepartementNom = encadreur.Departement?.Nom,
                 DomaineId = encadreur.DomaineId,

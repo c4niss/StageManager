@@ -54,7 +54,6 @@ namespace StageManager.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<StagiaireDto>> CreateStagiaire([FromBody] StagiaireCreateDto stagiaireDto)
@@ -101,7 +100,6 @@ namespace StageManager.Controllers
 
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -160,7 +158,6 @@ namespace StageManager.Controllers
 
 
         [HttpPut("{id}/status")]
-        [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -185,7 +182,6 @@ namespace StageManager.Controllers
 
 
         [HttpPatch("{id}")]
-        [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -223,7 +219,6 @@ namespace StageManager.Controllers
 
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -325,7 +320,6 @@ namespace StageManager.Controllers
         }
         // GET: api/Stagiaires/current
         [HttpGet("current")]
-        [Authorize(Roles = "Stagiaire")]
         public async Task<ActionResult<StagiaireDto>> GetCurrentStagiaire()
         {
             // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
@@ -343,7 +337,6 @@ namespace StageManager.Controllers
 
         // PUT: api/Stagiaires/update-password
         [HttpPut("update-password")]
-        [Authorize(Roles = "Stagiaire")]
         public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordModel model)
         {
             if (!ModelState.IsValid)
@@ -373,7 +366,6 @@ namespace StageManager.Controllers
         }
         // PUT: api/Stagiaires/update-stagiaire-info
         [HttpPut("update-stagiaire-info")]
-        [Authorize(Roles = "Stagiaire")]
         public async Task<IActionResult> UpdateStagiaireInfo([FromBody] UpdateStagiaireInfoDto updateDto)
         {
             if (!ModelState.IsValid)

@@ -124,7 +124,7 @@ namespace StageManager.Models
         // Relations
         [Required]
         [ForeignKey("Encadreur")]
-        public int EncadreurId { get; set; }
+        public int? EncadreurId { get; set; }
 
         [Required]
         [ForeignKey("Stage")]

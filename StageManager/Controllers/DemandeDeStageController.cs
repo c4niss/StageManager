@@ -163,60 +163,22 @@ namespace StageManager.Controllers
                         "Cordialement,\nLe service des stages");
                 }
 
-                // Créer un stage
-                var encadreur = await _db.Encadreurs
-                    .Where(e => e.EstDisponible && e.NbrStagiaires < e.StagiaireMax)
-                    .FirstOrDefaultAsync();
-
-                if (encadreur != null)
+                 var stage = new Stage
+                 {
+                    StagiaireGroup = string.Join(", ", demande.Stagiaires.Select(s => $"{s.Nom} {s.Prenom}")),
+                    DateDebut = DateTime.Now,
+                    DateFin = DateTime.Now.AddMonths(3),
+                    Statut = StatutStage.EnAttente,
+                    Stagiaires = new List<Stagiaire>()
+                };
+                foreach (var stagiaire in demandeAccord.stagiaires)
                 {
-                    var departement = await _db.Departements.FindAsync(encadreur.DepartementId);
-
-                    if (departement != null)
-                    {
-                        // Créer une convention
-                        var convention = new Convention
-                        {
-                            DemandeAccordId = demandeAccord.Id
-                        };
-
-                        _db.Conventions.Add(convention);
-                        await _db.SaveChangesAsync();
-
-                        // Créer le stage
-                        var stage = new Stage
-                        {
-                            StagiaireGroup = string.Join(", ", demande.Stagiaires.Select(s => $"{s.Nom} {s.Prenom}")),
-                            DateDebut = DateTime.Now,
-                            DateFin = DateTime.Now.AddMonths(3),
-                            Statut = StatutStage.EnCours,
-                            ConventionId = convention.Id,
-                            DepartementId = departement.Id,
-                            EncadreurId = encadreur.Id
-                        };
-
-                        _db.Stages.Add(stage);
-                        await _db.SaveChangesAsync();
-
-                        // Associer les stagiaires au stage
-                        foreach (var stagiaire in demande.Stagiaires)
-                        {
-                            stagiaire.StageId = stage.Id;
-                        }
-
-                        // Mettre à jour le nombre de stagiaires pour l'encadreur
-                        encadreur.NbrStagiaires += demande.Stagiaires.Count;
-                        if (encadreur.NbrStagiaires >= encadreur.StagiaireMax)
-                        {
-                            encadreur.EstDisponible = false;
-                        }
-
-                        // Mettre à jour la convention avec l'ID du stage
-                        convention.StageId = stage.Id;
-
-                        await _db.SaveChangesAsync();
-                    }
+                    stage.Stagiaires.Add(stagiaire);
+                    stagiaire.StageId = stage.Id;
                 }
+                _db.Stages.Add(stage);
+                await _db.SaveChangesAsync();
+
             }
             else if (demande.Statut == DemandeDeStage.StatusDemandeDeStage.Refuse)
             {

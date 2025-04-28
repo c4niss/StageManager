@@ -48,7 +48,6 @@ namespace StageManager.Controllers
 
         // POST: api/MembreDirection
         [HttpPost]
-        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<MembreDirectionDto>> CreateMembreDirection([FromBody] CreateMembreDirectionDto membredirectiondto)
@@ -173,7 +172,6 @@ namespace StageManager.Controllers
 
         // DELETE: api/MembreDirection/5
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteMembreDirection(int id)
         {
             var membreDirection = await _context.MembresDirection.FindAsync(id);
@@ -205,7 +203,6 @@ namespace StageManager.Controllers
         }
         // GET: api/MembreDirection/current
         [HttpGet("current")]
-        [Authorize(Roles = "MembreDirection")]
         public async Task<ActionResult<MembreDirectionDto>> GetCurrentMembreDirection()
         {
             // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
@@ -223,7 +220,6 @@ namespace StageManager.Controllers
 
         // PUT: api/MembreDirection/update-password
         [HttpPut("update-password")]
-        [Authorize(Roles = "MembreDirection")]
         public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordModel model)
         {
             if (!ModelState.IsValid)

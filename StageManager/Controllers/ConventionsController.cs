@@ -164,7 +164,6 @@ namespace StageManager.Controllers
                                 NomPrenomEvaluateur = "",
                                 DateEvaluation = DateTime.Now,
                                 StagiaireId = stagiaire.Id,
-                                EncadreurId = convention.Stage.EncadreurId,
                                 StageId = convention.Stage.Id
                             };
 

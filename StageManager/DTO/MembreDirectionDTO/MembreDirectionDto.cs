@@ -30,5 +30,6 @@ namespace StageManager.DTO.MembreDirectionDTO
         [Required]
         [DataType(DataType.DateTime)]
         public DateTime DatePrisePoste { get; set; } = DateTime.UtcNow;
+        public bool EstActif { get; set; }
     }
 }

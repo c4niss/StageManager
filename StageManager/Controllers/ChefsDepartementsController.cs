@@ -50,7 +50,6 @@ namespace StageManager.Controllers
 
         // POST: api/ChefDepartements
         [HttpPost]
-        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ChefDepartementDto>> CreateChefDepartement(CreateChefDepartementDto createDto)
         {
             // Validation explicite que DepartementId existe et est valide

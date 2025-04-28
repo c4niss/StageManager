@@ -92,7 +92,6 @@ namespace StageManager.Controllers
 
         // POST: api/FichePointage
         [HttpPost]
-        [Authorize(Roles = "Direction")]
         public async Task<ActionResult<FichePointageReadDto>> CreateFichePointage(FichePointageCreateDto fichePointageDto)
         {
             // Vérifier si le stagiaire, l'encadreur et le stage existent
@@ -224,7 +223,6 @@ namespace StageManager.Controllers
 
         // PUT: api/FichePointage/5
         [HttpPut("{id}")]
-        [Authorize(Roles = "Direction")]
         public async Task<IActionResult> UpdateFichePointage(int id, FichePointageUpdateDto fichePointageDto)
         {
             if (id != fichePointageDto.Id)
@@ -323,7 +321,6 @@ namespace StageManager.Controllers
 
         // GET: api/FichePointage/{id}/PointageMois
         [HttpGet("{id}/PointageMois")]
-        [Authorize(Roles = "Direction,Encadreur,Stagiaire")]
         public async Task<ActionResult<IEnumerable<PointageMoisDto>>> GetPointageMois(int id)
         {
             var fichePointage = await _context.FichesDePointage
@@ -356,7 +353,6 @@ namespace StageManager.Controllers
 
         // PUT: api/FichePointage/{id}/PointageMois/{moisId}
         [HttpPut("{id}/PointageMois/{moisId}")]
-        [Authorize(Roles = "Encadreur,Stagiaire")]
         public async Task<IActionResult> UpdatePointageMois(int id, int moisId, PointageMoisUpdateDto pointageMoisDto)
         {
             var pointageMois = await _context.PointageMois
@@ -385,7 +381,6 @@ namespace StageManager.Controllers
 
         // PATCH: api/FichePointage/UpdatePointage
         [HttpPatch("UpdatePointage")]
-        [Authorize(Roles = "Encadreur")]
         public async Task<IActionResult> UpdateDonneesPointage(DonneesPointageUpdateDto donneesPointageDto)
         {
             var fichePointage = await _context.FichesDePointage.FindAsync(donneesPointageDto.FichePointageId);
@@ -426,7 +421,6 @@ namespace StageManager.Controllers
 
         // POST: api/FichePointage/Validate
         [HttpPost("Validate")]
-        [Authorize(Roles = "Direction,Encadreur")]
         public async Task<IActionResult> ValidateFichePointage(FichePointageValidationDto validationDto)
         {
             var fichePointage = await _context.FichesDePointage.FindAsync(validationDto.Id);
@@ -463,7 +457,6 @@ namespace StageManager.Controllers
 
         // DELETE: api/FichePointage/5
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Direction")]
         public async Task<IActionResult> DeleteFichePointage(int id)
         {
             var fichePointage = await _context.FichesDePointage
@@ -490,7 +483,6 @@ namespace StageManager.Controllers
 
         // GET: api/FichePointage/Stagiaire/5
         [HttpGet("Stagiaire/{stagiaireId}")]
-        [Authorize(Roles = "Direction,Encadreur,Stagiaire")]
         public async Task<ActionResult<IEnumerable<FichePointageListDto>>> GetFichesPointageByStagiaire(int stagiaireId)
         {
             var fichesPointage = await _context.FichesDePointage

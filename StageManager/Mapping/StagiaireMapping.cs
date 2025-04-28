@@ -16,6 +16,7 @@ namespace StageManager.Mapping
                 Telephone = stagiaire.Telephone,
                 Universite = stagiaire.Universite,
                 Specialite = stagiaire.Specialite,
+                EstActif = stagiaire.EstActif,
                 Status = stagiaire.Status,
                 Username = stagiaire.Username
             };

@@ -52,7 +52,6 @@ namespace StageManager.Controllers
 
         // POST: api/Domaines
         [HttpPost]
-        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<DomaineDto>> CreateDomaine(CreateDomaineDto createDto)
         {
             var departement = await _context.Departements.FindAsync(createDto.DepartementId);
@@ -112,7 +111,6 @@ namespace StageManager.Controllers
         }
         // DELETE: api/Domaines/5
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteDomaine(int id)
         {
             var domaine = await _context.Domaines.FindAsync(id);

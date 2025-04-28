@@ -38,5 +38,6 @@
 
         public int? DomaineId { get; set; }
         public string DomaineNom { get; set; }
+        public bool EstActif { get; set; }
     }
 }

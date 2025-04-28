@@ -20,11 +20,11 @@ namespace StageManager.DTO.StageDTO
         public StatutStage Statut { get; set; }
 
         // Références avec infos minimales
-        public int ConventionId { get; set; }
-        public int DepartementId { get; set; }
+        public int? ConventionId { get; set; }
+        public int? DepartementId { get; set; }
         public string DepartementNom { get; set; }
 
-        public int EncadreurId { get; set; }
+        public int? EncadreurId { get; set; }
         public string EncadreurNomComplet { get; set; }
 
         // Optionnel : Liste simplifiée des stagiaires

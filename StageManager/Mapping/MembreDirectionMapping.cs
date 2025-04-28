@@ -15,7 +15,8 @@ namespace StageManager.Mapping
                 Email = membre.Email,
                 Telephone = membre.Telephone,
                 Fonction = membre.Fonction,
-                DatePrisePoste = membre.DatePrisePoste
+                DatePrisePoste = membre.DatePrisePoste,
+                EstActif = membre.EstActif,
             };
         }
 

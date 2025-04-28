@@ -812,7 +812,7 @@ namespace StageManager.Migrations
                     b.Property<int>("AvenantId")
                         .HasColumnType("int");
 
-                    b.Property<int>("ConventionId")
+                    b.Property<int?>("ConventionId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("DateDebut")
@@ -821,13 +821,13 @@ namespace StageManager.Migrations
                     b.Property<DateTime>("DateFin")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("DepartementId")
+                    b.Property<int?>("DepartementId")
                         .HasColumnType("int");
 
                     b.Property<int?>("DomaineId")
                         .HasColumnType("int");
 
-                    b.Property<int>("EncadreurId")
+                    b.Property<int?>("EncadreurId")
                         .HasColumnType("int");
 
                     b.Property<int>("FicheEvaluationStagiaireId")
@@ -1352,9 +1352,7 @@ namespace StageManager.Migrations
                 {
                     b.HasOne("StageManager.Models.Departement", "Departement")
                         .WithMany()
-                        .HasForeignKey("DepartementId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("DepartementId");
 
                     b.HasOne("StageManager.Models.Domaine", null)
                         .WithMany("Stages")
@@ -1363,8 +1361,7 @@ namespace StageManager.Migrations
                     b.HasOne("StageManager.Models.Encadreur", "Encadreur")
                         .WithMany("Stages")
                         .HasForeignKey("EncadreurId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Departement");
 

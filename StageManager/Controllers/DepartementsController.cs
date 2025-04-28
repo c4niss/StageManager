@@ -51,7 +51,6 @@ namespace StageManager.Controllers
 
         // POST: api/Departements
         [HttpPost]
-        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<DepartementDto>> CreateDepartement(CreateDepartementDto createDto)
         {
             var departement = new Departement
@@ -102,7 +101,6 @@ namespace StageManager.Controllers
             return NoContent();
         }
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteDepartement(int id)
         {
             // Utiliser un transaction pour s'assurer que toutes les opérations sont atomiques

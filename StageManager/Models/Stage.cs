@@ -25,17 +25,17 @@ namespace StageManager.Models
 
         // Relations modifiées
         [ForeignKey("Convention")]
-        public int ConventionId { get; set; }
+        public int? ConventionId { get; set; }
 
         [ForeignKey("Departement")]
-        public int DepartementId { get; set; }
+        public int? DepartementId { get; set; }
 
         [ForeignKey("Encadreur")]
-        public int EncadreurId { get; set; }
+        public int? EncadreurId { get; set; }
 
         // Navigation avec JsonIgnore
         [JsonIgnore]
-        public Encadreur Encadreur { get; set; }
+        public virtual Encadreur Encadreur { get; set; }
 
         [JsonIgnore]
         public Convention Convention { get; set; }
