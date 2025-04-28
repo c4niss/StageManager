@@ -7,6 +7,7 @@ using StageManager.Mapping;
 using StageManager.Models;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using TestRestApi.Data;
 
@@ -53,6 +54,7 @@ namespace StageManager.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<StagiaireDto>> CreateStagiaire([FromBody] StagiaireCreateDto stagiaireDto)
@@ -82,13 +84,13 @@ namespace StageManager.Controllers
                 Email = stagiaireDto.Email,
                 Telephone = stagiaireDto.Telephone,
                 MotDePasse = passwordHasher.HashPassword(null, stagiaireDto.MotDePasse),
-                Role = "Stagiaire",
                 Universite = stagiaireDto.Universite,
-                EstActif = true,
+                EstActif = false,
                 Username = stagiaireDto.Username,
                 Specialite = stagiaireDto.Specialite,
                 Status = StagiaireStatus.EnCour,
-                DateCreation = DateTime.Now
+                DateCreation = DateTime.Now,
+                Role = UserRoles.Stagiaire
             };
 
             _db.Stagiaires.Add(stagiaire);
@@ -99,6 +101,7 @@ namespace StageManager.Controllers
 
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -140,6 +143,7 @@ namespace StageManager.Controllers
 
             if (!string.IsNullOrEmpty(stagiaireDto.Specialite))
                 stagiaire.Specialite = stagiaireDto.Specialite;
+
             stagiaire.Status = stagiaireDto.Status;
 
             try
@@ -156,6 +160,7 @@ namespace StageManager.Controllers
 
 
         [HttpPut("{id}/status")]
+        [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -180,6 +185,7 @@ namespace StageManager.Controllers
 
 
         [HttpPatch("{id}")]
+        [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -217,6 +223,7 @@ namespace StageManager.Controllers
 
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -234,7 +241,7 @@ namespace StageManager.Controllers
 
             // Vérifier si le stagiaire est associé à un stage actif
             if (stagiaire.Stage != null &&
-                (
+                (stagiaire.Stage.Statut == StatutStage.EnAttente ||
                  stagiaire.Stage.Statut == StatutStage.EnCours ||
                  stagiaire.Stage.Statut == StatutStage.Prolonge))
             {
@@ -315,6 +322,92 @@ namespace StageManager.Controllers
                 .ToListAsync();
 
             return Ok(stagiaires.Select(s => s.ToDto()));
+        }
+        // GET: api/Stagiaires/current
+        [HttpGet("current")]
+        [Authorize(Roles = "Stagiaire")]
+        public async Task<ActionResult<StagiaireDto>> GetCurrentStagiaire()
+        {
+            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
+                return Unauthorized("Token invalide ou utilisateur non identifié");
+
+            var stagiaire = await _db.Stagiaires.FindAsync(id);
+            if (stagiaire == null)
+                return NotFound("Stagiaire non trouvé");
+
+            return stagiaire.ToDto();
+        }
+
+        // PUT: api/Stagiaires/update-password
+        [HttpPut("update-password")]
+        [Authorize(Roles = "Stagiaire")]
+        public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordModel model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
+                return Unauthorized("Token invalide ou utilisateur non identifié");
+
+            var stagiaire = await _db.Stagiaires.FindAsync(id);
+            if (stagiaire == null)
+                return NotFound("Stagiaire non trouvé");
+
+            // Vérifier que le mot de passe actuel est correct
+            var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<Stagiaire>();
+            var verificationResult = passwordHasher.VerifyHashedPassword(stagiaire, stagiaire.MotDePasse, model.CurrentPassword);
+            if (verificationResult == Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed)
+                return BadRequest("Le mot de passe actuel est incorrect");
+
+            // Mettre à jour le mot de passe
+            stagiaire.MotDePasse = passwordHasher.HashPassword(stagiaire, model.NewPassword);
+            await _db.SaveChangesAsync();
+
+            return Ok(new { message = "Mot de passe mis à jour avec succès" });
+        }
+        // PUT: api/Stagiaires/update-stagiaire-info
+        [HttpPut("update-stagiaire-info")]
+        [Authorize(Roles = "Stagiaire")]
+        public async Task<IActionResult> UpdateStagiaireInfo([FromBody] UpdateStagiaireInfoDto updateDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
+                return Unauthorized("Token invalide ou utilisateur non identifié");
+
+            var stagiaire = await _db.Stagiaires.FindAsync(id);
+            if (stagiaire == null)
+                return NotFound("Stagiaire non trouvé");
+
+            // Mettre à jour les propriétés si elles sont fournies
+            if (!string.IsNullOrEmpty(updateDto.Email))
+                stagiaire.Email = updateDto.Email;
+
+            if (!string.IsNullOrEmpty(updateDto.Telephone))
+                stagiaire.Telephone = updateDto.Telephone;
+
+            try
+            {
+                await _db.SaveChangesAsync();
+                return Ok(new { message = "Informations mises à jour avec succès" });
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!_db.Stagiaires.Any(s => s.Id == id))
+                    return NotFound("Stagiaire non trouvé");
+                else
+                    throw;
+            }
         }
 
 

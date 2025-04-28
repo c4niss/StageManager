@@ -24,7 +24,8 @@ namespace StageManager.DTO.EncadreurDTO
 
         [StringLength(100)]
         public string Fonction { get; set; }
-
+        [StringLength(100)]
+        public bool? EstActif { get; set; }
         public bool? EstDisponible { get; set; }
         public int? StagiaireMax { get; set; }
 

@@ -6,7 +6,8 @@ namespace StageManager.Models
     {
         EnCours,
         Accepte,
-        Refuse
+        Refuse,
+        EnAttente
     }
     public enum NatureStage
     {

@@ -28,7 +28,7 @@ namespace StageManager.DTO.EncadreurDTO
         public string Telephone { get; set; }
         [Required]
         public int DepartementId { get; set; }
-
+        public string Fonction { get; set; }
         [Required]
         public int DomaineId { get; set; }
     }

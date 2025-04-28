@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using StageManager.Models;
 using StageManager.DTOs;
+using StageManager.DTO;
 using StageManager.Mapping;
 using System;
 using System.Collections.Generic;
@@ -52,6 +53,8 @@ namespace StageManager.Controllers
                 .Include(f => f.Stagiaire)
                 .Include(f => f.Encadreur)
                 .Include(f => f.Stage)
+                .Include(f => f.PointageMois)
+                    .ThenInclude(p => p.JoursPresence)
                 .FirstOrDefaultAsync(f => f.Id == id);
 
             if (fichePointage == null)
@@ -113,7 +116,6 @@ namespace StageManager.Controllers
 
             // Vérifier la durée du stage selon sa nature
             TimeSpan dureeStage = fichePointageDto.DateFinStage - fichePointageDto.DateDebutStage;
-
             if (fichePointageDto.NatureStage == NatureStage.StageImpregnation && dureeStage.TotalDays > 31)
             {
                 return BadRequest("La durée d'un stage d'imprégnation ne doit pas dépasser un (1) mois");
@@ -141,6 +143,48 @@ namespace StageManager.Controllers
 
             _context.FichesDePointage.Add(fichePointage);
             await _context.SaveChangesAsync();
+
+            // Créer les mois de pointage pour la période du stage
+            DateTime dateDebut = fichePointageDto.DateDebutStage;
+            DateTime dateFin = fichePointageDto.DateFinStage;
+
+            for (DateTime date = new DateTime(dateDebut.Year, dateDebut.Month, 1);
+                 date <= dateFin;
+                 date = date.AddMonths(1))
+            {
+                var pointageMois = new PointageMois
+                {
+                    Mois = date.ToString("MMMM"),
+                    Annee = date.Year,
+                    FicheDePointageId = fichePointage.Id
+                };
+
+                _context.PointageMois.Add(pointageMois);
+                await _context.SaveChangesAsync();
+
+                // Créer les jours de présence pour ce mois
+                int daysInMonth = DateTime.DaysInMonth(date.Year, date.Month);
+                for (int day = 1; day <= daysInMonth; day++)
+                {
+                    DateTime jourDate = new DateTime(date.Year, date.Month, day);
+
+                    // Ne créer que les jours qui sont dans la période du stage
+                    if (jourDate >= dateDebut && jourDate <= dateFin)
+                    {
+                        var jourPresence = new JourPresence
+                        {
+                            Jour = day,
+                            JourSemaine = jourDate.DayOfWeek,
+                            EstPresent = false, // Par défaut, le stagiaire est marqué absent
+                            Commentaire = "",
+                            PointageMoisId = pointageMois.Id
+                        };
+
+                        _context.jourPresences.Add(jourPresence);
+                    }
+                }
+                await _context.SaveChangesAsync();
+            }
 
             // Recharger l'entité avec ses relations pour le DTO de retour
             fichePointage = await _context.FichesDePointage
@@ -188,7 +232,10 @@ namespace StageManager.Controllers
                 return BadRequest();
             }
 
-            var fichePointage = await _context.FichesDePointage.FindAsync(id);
+            var fichePointage = await _context.FichesDePointage
+                .Include(f => f.PointageMois)
+                    .ThenInclude(p => p.JoursPresence)
+                .FirstOrDefaultAsync(f => f.Id == id);
 
             if (fichePointage == null)
             {
@@ -197,7 +244,6 @@ namespace StageManager.Controllers
 
             // Vérifier la durée du stage selon sa nature
             TimeSpan dureeStage = fichePointageDto.DateFinStage - fichePointageDto.DateDebutStage;
-
             if (fichePointageDto.NatureStage == NatureStage.StageImpregnation && dureeStage.TotalDays > 31)
             {
                 return BadRequest("La durée d'un stage d'imprégnation ne doit pas dépasser un (1) mois");
@@ -208,6 +254,7 @@ namespace StageManager.Controllers
                 return BadRequest("La durée d'un stage de mémoire ne doit pas dépasser six (6) mois");
             }
 
+            // Mettre à jour les propriétés de base
             fichePointage.NomPrenomStagiaire = fichePointageDto.NomPrenomStagiaire;
             fichePointage.StructureAccueil = fichePointageDto.StructureAccueil;
             fichePointage.NomQualitePersonneChargeSuivi = fichePointageDto.NomQualitePersonneChargeSuivi;
@@ -215,9 +262,44 @@ namespace StageManager.Controllers
             fichePointage.DateFinStage = fichePointageDto.DateFinStage;
             fichePointage.NatureStage = fichePointageDto.NatureStage;
 
+            // Mettre à jour les données de pointage si fournies
             if (!string.IsNullOrEmpty(fichePointageDto.DonneesPointage))
             {
                 fichePointage.DonneesPointage = fichePointageDto.DonneesPointage;
+            }
+
+            // Mettre à jour les mois de pointage si fournis
+            if (fichePointageDto.PointageMois != null && fichePointageDto.PointageMois.Any())
+            {
+                foreach (var moisDto in fichePointageDto.PointageMois)
+                {
+                    var moisExistant = fichePointage.PointageMois
+                        .FirstOrDefault(m => m.Id == moisDto.Id);
+
+                    if (moisExistant != null)
+                    {
+                        // Mettre à jour le mois existant
+                        moisExistant.Mois = moisDto.Mois;
+                        moisExistant.Annee = moisDto.Annee;
+
+                        // Mettre à jour les jours de présence
+                        if (moisDto.JoursPresence != null)
+                        {
+                            foreach (var jourDto in moisDto.JoursPresence)
+                            {
+                                var jourExistant = moisExistant.JoursPresence
+                                    .FirstOrDefault(j => j.Id == jourDto.Id);
+
+                                if (jourExistant != null)
+                                {
+                                    // Mettre à jour le jour existant
+                                    jourExistant.EstPresent = jourDto.EstPresent;
+                                    jourExistant.Commentaire = jourDto.Commentaire;
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             try
@@ -239,13 +321,74 @@ namespace StageManager.Controllers
             return NoContent();
         }
 
+        // GET: api/FichePointage/{id}/PointageMois
+        [HttpGet("{id}/PointageMois")]
+        [Authorize(Roles = "Direction,Encadreur,Stagiaire")]
+        public async Task<ActionResult<IEnumerable<PointageMoisDto>>> GetPointageMois(int id)
+        {
+            var fichePointage = await _context.FichesDePointage
+                .Include(f => f.PointageMois)
+                    .ThenInclude(p => p.JoursPresence)
+                .FirstOrDefaultAsync(f => f.Id == id);
+
+            if (fichePointage == null)
+            {
+                return NotFound();
+            }
+
+            var pointageMoisDtos = fichePointage.PointageMois.Select(p => new PointageMoisDto
+            {
+                Id = p.Id,
+                Mois = p.Mois,
+                Annee = p.Annee,
+                JoursPresence = p.JoursPresence.Select(j => new JourPresenceDto
+                {
+                    Id = j.Id,
+                    Jour = j.Jour,
+                    JourSemaine = j.JourSemaine,
+                    EstPresent = j.EstPresent,
+                    Commentaire = j.Commentaire
+                }).ToList()
+            }).ToList();
+
+            return pointageMoisDtos;
+        }
+
+        // PUT: api/FichePointage/{id}/PointageMois/{moisId}
+        [HttpPut("{id}/PointageMois/{moisId}")]
+        [Authorize(Roles = "Encadreur,Stagiaire")]
+        public async Task<IActionResult> UpdatePointageMois(int id, int moisId, PointageMoisUpdateDto pointageMoisDto)
+        {
+            var pointageMois = await _context.PointageMois
+                .Include(p => p.JoursPresence)
+                .FirstOrDefaultAsync(p => p.Id == moisId && p.FicheDePointageId == id);
+
+            if (pointageMois == null)
+            {
+                return NotFound();
+            }
+
+            // Mettre à jour les jours de présence
+            foreach (var jourDto in pointageMoisDto.JoursPresence)
+            {
+                var jour = pointageMois.JoursPresence.FirstOrDefault(j => j.Id == jourDto.Id);
+                if (jour != null)
+                {
+                    jour.EstPresent = jourDto.EstPresent;
+                    jour.Commentaire = jourDto.Commentaire;
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
         // PATCH: api/FichePointage/UpdatePointage
         [HttpPatch("UpdatePointage")]
         [Authorize(Roles = "Encadreur")]
         public async Task<IActionResult> UpdateDonneesPointage(DonneesPointageUpdateDto donneesPointageDto)
         {
             var fichePointage = await _context.FichesDePointage.FindAsync(donneesPointageDto.FichePointageId);
-
             if (fichePointage == null)
             {
                 return NotFound();
@@ -262,7 +405,6 @@ namespace StageManager.Controllers
             }
 
             fichePointage.DonneesPointage = donneesPointageDto.DonneesPointage;
-
             try
             {
                 await _context.SaveChangesAsync();
@@ -288,7 +430,6 @@ namespace StageManager.Controllers
         public async Task<IActionResult> ValidateFichePointage(FichePointageValidationDto validationDto)
         {
             var fichePointage = await _context.FichesDePointage.FindAsync(validationDto.Id);
-
             if (fichePointage == null)
             {
                 return NotFound();
@@ -301,7 +442,6 @@ namespace StageManager.Controllers
             }
 
             fichePointage.EstValide = validationDto.EstValide;
-
             try
             {
                 await _context.SaveChangesAsync();
@@ -326,16 +466,25 @@ namespace StageManager.Controllers
         [Authorize(Roles = "Direction")]
         public async Task<IActionResult> DeleteFichePointage(int id)
         {
-            var fichePointage = await _context.FichesDePointage.FindAsync(id);
+            var fichePointage = await _context.FichesDePointage
+                .Include(f => f.PointageMois)
+                    .ThenInclude(p => p.JoursPresence)
+                .FirstOrDefaultAsync(f => f.Id == id);
 
             if (fichePointage == null)
             {
                 return NotFound();
             }
 
+            // Supprimer d'abord les jours de présence et les mois de pointage
+            foreach (var mois in fichePointage.PointageMois)
+            {
+                _context.jourPresences.RemoveRange(mois.JoursPresence);
+                _context.PointageMois.Remove(mois);
+            }
+
             _context.FichesDePointage.Remove(fichePointage);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
 
@@ -389,7 +538,18 @@ namespace StageManager.Controllers
         }
     }
 
-    // Cette classe est nécessaire pour l'action PATCH UpdatePointage
+    public class PointageMoisUpdateDto
+    {
+        public List<JourPresenceUpdateDto> JoursPresence { get; set; }
+    }
+
+    public class JourPresenceUpdateDto
+    {
+        public int Id { get; set; }
+        public bool EstPresent { get; set; }
+        public string Commentaire { get; set; }
+    }
+
     public class DonneesPointageUpdateDto
     {
         [Required(ErrorMessage = "L'identifiant de la fiche de pointage est obligatoire")]
@@ -398,6 +558,4 @@ namespace StageManager.Controllers
         [Required(ErrorMessage = "Les données de pointage sont obligatoires")]
         public string DonneesPointage { get; set; }
     }
-
-
 }

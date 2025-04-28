@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 
 namespace StageManager.Models
 {
-    public enum StatutStage {EnCours, Termine, Annule, Prolonge }
+    public enum StatutStage { EnAttente , EnCours, Termine, Annule, Prolonge }
 
     public class Stage
     {
@@ -21,7 +21,7 @@ namespace StageManager.Models
         public DateTime DateFin { get; set; }
 
         [Required]
-        public StatutStage Statut { get; set; } = StatutStage.EnCours;
+        public StatutStage Statut { get; set; } = StatutStage.EnAttente;
 
         // Relations modifiées
         [ForeignKey("Convention")]

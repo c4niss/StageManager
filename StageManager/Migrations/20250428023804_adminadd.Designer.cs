@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TestRestApi.Data;
 
@@ -11,9 +12,11 @@ using TestRestApi.Data;
 namespace StageManager.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250428023804_adminadd")]
+    partial class adminadd
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -241,6 +244,9 @@ namespace StageManager.Migrations
                     b.Property<int?>("ChefDepartementId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ChefDepartementId1")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("DateCreation")
                         .HasColumnType("datetime2");
 
@@ -322,6 +328,8 @@ namespace StageManager.Migrations
 
                     b.HasIndex("ChefDepartementId");
 
+                    b.HasIndex("ChefDepartementId1");
+
                     b.HasIndex("DemandeStageId")
                         .IsUnique();
 
@@ -347,6 +355,8 @@ namespace StageManager.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ChefDepartementId");
 
                     b.ToTable("Departements");
                 });
@@ -953,13 +963,6 @@ namespace StageManager.Migrations
                     b.UseTphMappingStrategy();
                 });
 
-            modelBuilder.Entity("StageManager.Models.Admin", b =>
-                {
-                    b.HasBaseType("StageManager.Models.Utilisateur");
-
-                    b.HasDiscriminator().HasValue("Admin");
-                });
-
             modelBuilder.Entity("StageManager.Models.ChefDepartement", b =>
                 {
                     b.HasBaseType("StageManager.Models.Utilisateur");
@@ -967,9 +970,7 @@ namespace StageManager.Migrations
                     b.Property<int>("DepartementId")
                         .HasColumnType("int");
 
-                    b.HasIndex("DepartementId")
-                        .IsUnique()
-                        .HasFilter("[DepartementId] IS NOT NULL");
+                    b.HasIndex("DepartementId");
 
                     b.ToTable("Utilisateurs", t =>
                         {
@@ -1172,7 +1173,7 @@ namespace StageManager.Migrations
                     b.HasOne("StageManager.Models.Encadreur", "Encadreur")
                         .WithMany()
                         .HasForeignKey("EncadreurId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("StageManager.Models.MembreDirection", "MembreDirection")
@@ -1203,8 +1204,13 @@ namespace StageManager.Migrations
             modelBuilder.Entity("StageManager.Models.Demandeaccord", b =>
                 {
                     b.HasOne("StageManager.Models.ChefDepartement", "ChefDepartement")
+                        .WithMany()
+                        .HasForeignKey("ChefDepartementId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("StageManager.Models.ChefDepartement", null)
                         .WithMany("Demandeaccords")
-                        .HasForeignKey("ChefDepartementId");
+                        .HasForeignKey("ChefDepartementId1");
 
                     b.HasOne("StageManager.Models.DemandeDeStage", "DemandeDeStage")
                         .WithOne()
@@ -1221,6 +1227,15 @@ namespace StageManager.Migrations
                     b.Navigation("DemandeDeStage");
 
                     b.Navigation("Encadreur");
+                });
+
+            modelBuilder.Entity("StageManager.Models.Departement", b =>
+                {
+                    b.HasOne("StageManager.Models.ChefDepartement", "ChefDepartement")
+                        .WithMany()
+                        .HasForeignKey("ChefDepartementId");
+
+                    b.Navigation("ChefDepartement");
                 });
 
             modelBuilder.Entity("StageManager.Models.Domaine", b =>
@@ -1395,9 +1410,10 @@ namespace StageManager.Migrations
             modelBuilder.Entity("StageManager.Models.ChefDepartement", b =>
                 {
                     b.HasOne("StageManager.Models.Departement", "Departement")
-                        .WithOne("ChefDepartement")
-                        .HasForeignKey("StageManager.Models.ChefDepartement", "DepartementId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .WithMany()
+                        .HasForeignKey("DepartementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Departement");
                 });
@@ -1463,9 +1479,6 @@ namespace StageManager.Migrations
 
             modelBuilder.Entity("StageManager.Models.Departement", b =>
                 {
-                    b.Navigation("ChefDepartement")
-                        .IsRequired();
-
                     b.Navigation("Domaines");
 
                     b.Navigation("Encadreurs");

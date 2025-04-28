@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StageManager.DTO.DomaineDTO;
 using StageManager.Mapping;
@@ -51,6 +52,7 @@ namespace StageManager.Controllers
 
         // POST: api/Domaines
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<DomaineDto>> CreateDomaine(CreateDomaineDto createDto)
         {
             var departement = await _context.Departements.FindAsync(createDto.DepartementId);
@@ -108,15 +110,24 @@ namespace StageManager.Controllers
 
             return NoContent();
         }
-
         // DELETE: api/Domaines/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteDomaine(int id)
         {
             var domaine = await _context.Domaines.FindAsync(id);
             if (domaine == null)
             {
                 return NotFound();
+            }
+
+            // Mettre à null le DomaineId pour tous les encadreurs associés
+            var encadreurs = await _context.Encadreurs
+                .Where(e => e.DomaineId == id)
+                .ToListAsync();
+            foreach (var encadreur in encadreurs)
+            {
+                encadreur.DomaineId = null;
             }
 
             _context.Domaines.Remove(domaine);

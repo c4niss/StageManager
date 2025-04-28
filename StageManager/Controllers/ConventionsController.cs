@@ -1,6 +1,5 @@
 ﻿using MailKit.Security;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MimeKit.Text;
@@ -37,8 +36,11 @@ namespace StageManager.Controllers
             var conventions = await _context.Conventions
                 .Include(c => c.Stage)
                 .Include(c => c.MembreDirection)
+                .Include(c => c.DemandeAccord)
+                    .ThenInclude(d => d.stagiaires)
+                .Include(c => c.DemandeAccord)
+                    .ThenInclude(d => d.Theme)
                 .ToListAsync();
-
             return conventions.Select(c => c.ToDto()).ToList();
         }
 
@@ -49,6 +51,10 @@ namespace StageManager.Controllers
             var convention = await _context.Conventions
                 .Include(c => c.Stage)
                 .Include(c => c.MembreDirection)
+                .Include(c => c.DemandeAccord)
+                    .ThenInclude(d => d.stagiaires)
+                .Include(c => c.DemandeAccord)
+                    .ThenInclude(d => d.Theme)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (convention == null)
@@ -66,18 +72,25 @@ namespace StageManager.Controllers
             var conventions = await _context.Conventions
                 .Include(c => c.Stage)
                 .Include(c => c.MembreDirection)
+                .Include(c => c.DemandeAccord)
                 .Where(c => c.StageId == stageId)
                 .ToListAsync();
 
             return conventions.Select(c => c.ToDto()).ToList();
         }
 
+        // PUT: api/Convention/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateConvention(int id, UpdateConventionDto updateConventionDto)
         {
             var convention = await _context.Conventions
                 .Include(c => c.DemandeAccord)
-                .ThenInclude(d => d.stagiaires)
+                    .ThenInclude(d => d.stagiaires)
+                .Include(c => c.Stage)
+                .Include(c => c.DemandeAccord)
+                    .ThenInclude(d => d.Theme)
+                .Include(c => c.DemandeAccord)
+                    .ThenInclude(d => d.Encadreur)
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (convention == null)
@@ -91,17 +104,6 @@ namespace StageManager.Controllers
                 return BadRequest("Le membre de direction spécifié n'existe pas.");
             }
 
-            // Vérifier si StageId est fourni et existe
-            if (updateConventionDto.StageId.HasValue)
-            {
-                var stage = await _context.Stages.FindAsync(updateConventionDto.StageId.Value);
-                if (stage == null)
-                {
-                    return BadRequest("Le stage spécifié n'existe pas.");
-                }
-                convention.StageId = updateConventionDto.StageId;
-            }
-
             // Sauvegarde de l'ancien statut pour comparaison
             var oldStatus = convention.status;
 
@@ -113,67 +115,125 @@ namespace StageManager.Controllers
             // Logique spécifique si le statut a changé à Accepté
             if (oldStatus != Statusconvention.Accepte && convention.status == Statusconvention.Accepte)
             {
-                // Créer un nouveau Stage associé à cette convention
-                var demandeAccord = convention.DemandeAccord;
-
-                var newStage = new Stage
+                // Mettre à jour le statut de la demande d'accord
+                if (convention.DemandeAccord != null)
                 {
-                    StagiaireGroup = $"Groupe-{demandeAccord.Id}",
-                    DateDebut = demandeAccord.DateDebut ?? DateTime.Now,
-                    DateFin = demandeAccord.DateFin ?? DateTime.Now.AddMonths(3),
-                    Statut = StatutStage.EnCours,
-                    ConventionId = convention.Id,
-                    DepartementId = demandeAccord.ChefDepartement?.DepartementId ?? 1, // Utiliser un département par défaut si non spécifié
-                    EncadreurId = demandeAccord.EncadreurId ?? 1, // Utiliser un encadreur par défaut si non spécifié
-                    Stagiaires = new List<Stagiaire>()
-                };
+                    convention.DemandeAccord.Status = StatusAccord.Accepte;
 
-                // Ajouter les stagiaires de la demande d'accord au stage
-                if (demandeAccord.stagiaires != null && demandeAccord.stagiaires.Any())
-                {
-                    foreach (var stagiaire in demandeAccord.stagiaires)
+                    // Mettre à jour le statut des stagiaires
+                    if (convention.DemandeAccord.stagiaires != null)
                     {
-                        stagiaire.Status = StagiaireStatus.Accepte; // Assurez-vous que cette propriété existe dans votre modèle Stagiaire
-                        newStage.Stagiaires.Add(stagiaire);
+                        foreach (var stagiaire in convention.DemandeAccord.stagiaires)
+                        {
+                            stagiaire.Status = StagiaireStatus.Accepte;
 
-                        // Envoyer email de confirmation du début de stage
-                        string sujet = "Confirmation du début de votre stage";
-                        string corps = $"Bonjour {stagiaire.Nom} {stagiaire.Prenom},\n\n" +
-                                      $"Nous avons le plaisir de vous informer que votre convention de stage a été acceptée. " +
-                                      $"Votre stage débutera le {newStage.DateDebut.ToString("dd/MM/yyyy")} et se terminera le {newStage.DateFin.ToString("dd/MM/yyyy")}.\n\n" +
-                                      $"Veuillez vous présenter au service d'accueil à la date de début pour finaliser les formalités administratives.\n\n" +
-                                      $"Cordialement,\nService des Stages";
+                            // Créer une fiche de pointage pour chaque stagiaire
+                            var fichePointage = new FicheDePointage
+                            {
+                                DateCreation = DateTime.Now,
+                                NomPrenomStagiaire = $"{stagiaire.Nom} {stagiaire.Prenom}",
+                                StructureAccueil = convention.DemandeAccord.ServiceAccueil ?? "Non spécifié",
+                                NomQualitePersonneChargeSuivi = $"{convention.DemandeAccord.Encadreur?.Nom} {convention.DemandeAccord.Encadreur?.Prenom}",
+                                DateDebutStage = convention.Stage.DateDebut,
+                                DateFinStage = convention.Stage.DateFin,
+                                NatureStage = convention.DemandeAccord.NatureStage ?? NatureStage.StageImpregnation,
+                                DonneesPointage = "",
+                                EstValide = false,
+                                StagiaireId = stagiaire.Id,
+                                EncadreurId = convention.Stage.EncadreurId,
+                                StageId = convention.Stage.Id
+                            };
 
-                        await EnvoyerEmailAsync(stagiaire.Email, sujet, corps);
+                            _context.FichesDePointage.Add(fichePointage);
+
+                            // Créer une fiche d'évaluation pour chaque stagiaire
+                            var ficheEvaluationStagiaire = new FicheEvaluationStagiaire
+                            {
+                                DateCreation = DateTime.Now,
+                                NomPrenomStagiaire = $"{stagiaire.Nom} {stagiaire.Prenom}",
+                                FormationStagiaire = stagiaire.Specialite,
+                                DureeStage = (convention.Stage.DateFin - convention.Stage.DateDebut).Days.ToString() + " jours",
+                                PeriodeDu = convention.Stage.DateDebut,
+                                PeriodeAu = convention.Stage.DateFin,
+                                StructureAccueil = convention.DemandeAccord.ServiceAccueil ?? "Non spécifié",
+                                NombreSeancesPrevues = convention.DemandeAccord.NombreSeancesParSemaine ?? 0,
+                                NomPrenomEncadreur = $"{convention.DemandeAccord.Encadreur?.Nom} {convention.DemandeAccord.Encadreur?.Prenom}",
+                                FonctionEncadreur = convention.DemandeAccord.Encadreur?.Fonction ?? "Non spécifié",
+                                ThemeStage = convention.DemandeAccord.Theme?.Nom ?? "Non spécifié",
+                                MissionsConfieesAuStagiaire = "À compléter",
+                                NomPrenomEvaluateur = "",
+                                DateEvaluation = DateTime.Now,
+                                StagiaireId = stagiaire.Id,
+                                EncadreurId = convention.Stage.EncadreurId,
+                                StageId = convention.Stage.Id
+                            };
+
+                            _context.FichesEvaluationStagiaire.Add(ficheEvaluationStagiaire);
+
+                            // Envoyer email de confirmation
+                            string sujet = "Confirmation du début de votre stage";
+                            string corps = $"Bonjour {stagiaire.Nom} {stagiaire.Prenom},\n\n" +
+                                $"Nous avons le plaisir de vous informer que votre convention de stage a été acceptée. " +
+                                $"Votre stage débutera le {convention.Stage?.DateDebut.ToString("dd/MM/yyyy")} et se terminera le {convention.Stage?.DateFin.ToString("dd/MM/yyyy")}.\n\n" +
+                                $"Veuillez vous présenter au service d'accueil à la date de début pour finaliser les formalités administratives.\n\n" +
+                                $"Cordialement,\nService des Stages";
+
+                            await EnvoyerEmailAsync(stagiaire.Email, sujet, corps);
+                        }
                     }
+
+                    // Créer une fiche d'évaluation pour l'encadreur
+                    var ficheEvaluationEncadreur = new FicheEvaluationEncadreur
+                    {
+                        DateCreation = DateTime.Now,
+                        NomPrenomEncadreur = $"{convention.DemandeAccord.Encadreur?.Nom} {convention.DemandeAccord.Encadreur?.Prenom}",
+                        FonctionEncadreur = convention.DemandeAccord.Encadreur?.Fonction ?? "Non spécifié",
+                        DateDebutStage = convention.Stage.DateDebut,
+                        DateFinStage = convention.Stage.DateFin,
+                        Observations = "",
+                        NomPrenomStagiaireEvaluateur = "",
+                        DateEvaluation = DateTime.Now,
+                        EncadreurId = convention.Stage.EncadreurId,
+                        StageId = convention.Stage.Id
+                    };
+
+                    _context.FichesEvaluationEncadreur.Add(ficheEvaluationEncadreur);
                 }
 
-                _context.Stages.Add(newStage);
-
-                // Mettre à jour l'ID du stage dans la convention
-                convention.StageId = newStage.Id;
+                // Mettre à jour le statut du stage s'il existe
+                if (convention.Stage != null)
+                {
+                    convention.Stage.Statut = StatutStage.EnCours;
+                }
             }
             // Logique spécifique si le statut a changé à Refusé
             else if (oldStatus != Statusconvention.Refuse && convention.status == Statusconvention.Refuse)
             {
                 // Mettre à jour le statut des stagiaires à "Refuse"
-                if (convention.DemandeAccord?.stagiaires != null && convention.DemandeAccord.stagiaires.Any())
+                if (convention.DemandeAccord?.stagiaires != null)
                 {
                     foreach (var stagiaire in convention.DemandeAccord.stagiaires)
                     {
-                        stagiaire.Status = StagiaireStatus.Refuse; // Assurez-vous que cette propriété existe dans votre modèle Stagiaire
-                        stagiaire.EstActif = false;  // Désactiver le compte stagiaire
+                        stagiaire.Status = StagiaireStatus.Refuse;
 
                         // Envoyer email de refus
                         string sujet = "Refus de votre demande de stage";
                         string corps = $"Bonjour {stagiaire.Nom} {stagiaire.Prenom},\n\n" +
-                                      $"Nous regrettons de vous informer que votre convention de stage a été refusée. " +
-                                      $"Par conséquent, votre compte a été désactivé sur notre plateforme.\n\n" +
-                                      $"Pour toute information complémentaire, veuillez nous contacter par email.\n\n" +
-                                      $"Cordialement,\nService des Stages";
+                            $"Nous regrettons de vous informer que votre convention de stage a été refusée. " +
+                            $"Pour toute information complémentaire, veuillez nous contacter par email.\n\n" +
+                            $"Cordialement,\nService des Stages";
 
                         await EnvoyerEmailAsync(stagiaire.Email, sujet, corps);
                     }
+
+                    // Mettre à jour le statut de la demande d'accord
+                    convention.DemandeAccord.Status = StatusAccord.Refuse;
+                }
+
+                // Mettre à jour le statut du stage s'il existe
+                if (convention.Stage != null)
+                {
+                    convention.Stage.Statut = StatutStage.Annule;
                 }
             }
 
@@ -208,7 +268,6 @@ namespace StageManager.Controllers
 
             _context.Conventions.Remove(convention);
             await _context.SaveChangesAsync();
-
             return NoContent();
         }
 
@@ -218,23 +277,19 @@ namespace StageManager.Controllers
             email.From.Add(new MailboxAddress("Service des Stages", _config["Email:From"]));
             email.To.Add(new MailboxAddress("", destinataire));
             email.Subject = sujet;
-
             email.Body = new TextPart(TextFormat.Plain)
             {
                 Text = corps
             };
 
             using var client = new MailKit.Net.Smtp.SmtpClient();
-
             await client.ConnectAsync(
                 _config["Email:Host"],
                 int.Parse(_config["Email:Port"]),
                 SecureSocketOptions.StartTls);
-
             await client.AuthenticateAsync(
                 _config["Email:Username"],
                 _config["Email:Password"]);
-
             await client.SendAsync(email);
             await client.DisconnectAsync(true);
         }

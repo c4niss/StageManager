@@ -18,12 +18,12 @@ namespace StageManager.Models
 
         // Relation avec la fiche de pointage
         [Required]
-        [ForeignKey("FichePointage")]
-        public int FichePointageId { get; set; }
+        [ForeignKey("FicheDePointage")]
+        public int FicheDePointageId { get; set; }
 
         public virtual FicheDePointage FicheDePointage { get; set; }
 
         // Collection des jours de présence pour ce mois
-        public virtual ICollection<JourPresence> JoursPresence { get; set; }
+        public virtual ICollection<JourPresence> JoursPresence { get; set; } = new List<JourPresence>();
     }
 }

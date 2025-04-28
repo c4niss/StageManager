@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StageManager.DTO.MembreDirectionDTO;
 using StageManager.Mapping;
@@ -6,6 +7,7 @@ using StageManager.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using TestRestApi.Data;
 
@@ -46,6 +48,7 @@ namespace StageManager.Controllers
 
         // POST: api/MembreDirection
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<MembreDirectionDto>> CreateMembreDirection([FromBody] CreateMembreDirectionDto membredirectiondto)
@@ -78,10 +81,10 @@ namespace StageManager.Controllers
                 Fonction = membredirectiondto.Fonction,
                 Username = membredirectiondto.Username,
                 MotDePasse = passwordHasher.HashPassword(null, membredirectiondto.MotDePasse),
-                Role = "MembreDirection",
                 DatePrisePoste = DateTime.Now,
-                EstActif = true,
-                DemandesDeStage = new List<DemandeDeStage>()
+                EstActif = false,
+                DemandesDeStage = new List<DemandeDeStage>(),
+                Role = UserRoles.MembreDirection
             };
 
             _context.MembresDirection.Add(membreDirection);
@@ -133,14 +136,6 @@ namespace StageManager.Controllers
             if (!string.IsNullOrEmpty(updateDto.Fonction))
                 membreDirection.Fonction = updateDto.Fonction;
 
-
-            // Mise à jour du mot de passe seulement si fourni
-            if (!string.IsNullOrEmpty(updateDto.MotDePasse))
-            {
-                var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<MembreDirection>();
-                membreDirection.MotDePasse = passwordHasher.HashPassword(null, updateDto.MotDePasse);
-            }
-
             try
             {
                 await _context.SaveChangesAsync();
@@ -178,6 +173,7 @@ namespace StageManager.Controllers
 
         // DELETE: api/MembreDirection/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteMembreDirection(int id)
         {
             var membreDirection = await _context.MembresDirection.FindAsync(id);
@@ -206,6 +202,99 @@ namespace StageManager.Controllers
                 .ToListAsync();
 
             return Ok(demandes);
+        }
+        // GET: api/MembreDirection/current
+        [HttpGet("current")]
+        [Authorize(Roles = "MembreDirection")]
+        public async Task<ActionResult<MembreDirectionDto>> GetCurrentMembreDirection()
+        {
+            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
+                return Unauthorized("Token invalide ou utilisateur non identifié");
+
+            var membreDirection = await _context.MembresDirection.FindAsync(id);
+            if (membreDirection == null)
+                return NotFound("Membre de direction non trouvé");
+
+            return membreDirection.ToDto();
+        }
+
+        // PUT: api/MembreDirection/update-password
+        [HttpPut("update-password")]
+        [Authorize(Roles = "MembreDirection")]
+        public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordModel model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
+                return Unauthorized("Token invalide ou utilisateur non identifié");
+
+            var membreDirection = await _context.MembresDirection.FindAsync(id);
+            if (membreDirection == null)
+                return NotFound("Membre de direction non trouvé");
+
+            // Vérifier que le mot de passe actuel est correct
+            var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<MembreDirection>();
+            var verificationResult = passwordHasher.VerifyHashedPassword(membreDirection, membreDirection.MotDePasse, model.CurrentPassword);
+            if (verificationResult == Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed)
+                return BadRequest("Le mot de passe actuel est incorrect");
+
+            // Mettre à jour le mot de passe
+            membreDirection.MotDePasse = passwordHasher.HashPassword(membreDirection, model.NewPassword);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Mot de passe mis à jour avec succès" });
+        }
+        // PUT: api/MembreDirection/update-membre-info
+        [HttpPut("update-membre-info")]
+        [Authorize(Roles = "MembreDirection")]
+        public async Task<IActionResult> UpdateMembreInfo([FromBody] UpdateMembreInfoDto updateDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
+                return Unauthorized("Token invalide ou utilisateur non identifié");
+
+            var membreDirection = await _context.MembresDirection.FindAsync(id);
+            if (membreDirection == null)
+                return NotFound("Membre de direction non trouvé");
+
+            // Vérifier si l'email est déjà utilisé par un autre membre
+            if (!string.IsNullOrEmpty(updateDto.Email) &&
+                await _context.MembresDirection.AnyAsync(m => m.Email == updateDto.Email && m.Id != id))
+            {
+                return BadRequest("Cet email est déjà utilisé par un autre membre de la direction");
+            }
+
+            // Mettre à jour les propriétés si elles sont fournies
+            if (!string.IsNullOrEmpty(updateDto.Email))
+                membreDirection.Email = updateDto.Email;
+
+            if (!string.IsNullOrEmpty(updateDto.Telephone))
+                membreDirection.Telephone = updateDto.Telephone;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Informations mises à jour avec succès" });
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!MembreDirectionExists(id))
+                    return NotFound("Membre de direction non trouvé");
+                else
+                    throw;
+            }
         }
 
         private bool MembreDirectionExists(int id)

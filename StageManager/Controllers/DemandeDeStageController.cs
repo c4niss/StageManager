@@ -30,33 +30,30 @@ namespace StageManager.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetDemandesDeStage()
+        public async Task<ActionResult<IEnumerable<DemandeDeStageDto>>> GetDemandesDeStage()
         {
             var demandes = await _db.DemandesDeStage
                 .Include(d => d.Stagiaires)
-                .Include(d=> d.MembreDirection)
+                .Include(d => d.MembreDirection)
                 .ToListAsync();
-
             return Ok(demandes.Select(d => d.ToDto()));
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetDemandeDeStage(int id)
+        public async Task<ActionResult<DemandeDeStageDto>> GetDemandeDeStage(int id)
         {
             var demande = await _db.DemandesDeStage
                 .Include(d => d.Stagiaires)
                 .FirstOrDefaultAsync(d => d.Id == id);
-
             if (demande == null)
             {
                 return NotFound("Demande de stage non trouvée.");
             }
-
             return Ok(demande.ToDto());
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateDemandeDeStage([FromBody] DemandeDeStageCreateDto demandeDto)
+        public async Task<ActionResult<DemandeDeStageDto>> CreateDemandeDeStage([FromBody] DemandeDeStageCreateDto demandeDto)
         {
             if (!ModelState.IsValid)
             {
@@ -66,7 +63,6 @@ namespace StageManager.Controllers
             var stagiaires = await _db.Stagiaires
                 .Where(s => demandeDto.StagiaireIds.Contains(s.Id))
                 .ToListAsync();
-
             if (stagiaires.Count != demandeDto.StagiaireIds.Count)
             {
                 return BadRequest("Un ou plusieurs stagiaires n'existent pas.");
@@ -89,20 +85,18 @@ namespace StageManager.Controllers
                 Stagiaires = stagiaires,
                 MembreDirectionId = demandeDto.MembreDirectionId
             };
-
             _db.DemandesDeStage.Add(demande);
             await _db.SaveChangesAsync();
-
             foreach (var stagiaire in stagiaires)
             {
                 stagiaire.DemandeDeStageId = demande.Id;
             }
             await _db.SaveChangesAsync();
-
             return CreatedAtAction(nameof(GetDemandeDeStage), new { id = demande.Id }, demande.ToDto());
         }
+
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateDemandeDeStage(int id, [FromBody] DemandeDeStageUpdateDto demandeDto)
+        public async Task<ActionResult<DemandeDeStageDto>> UpdateDemandeDeStage(int id, [FromBody] DemandeDeStageUpdateDto demandeDto)
         {
             if (!ModelState.IsValid)
             {
@@ -113,7 +107,6 @@ namespace StageManager.Controllers
                 .Include(d => d.Stagiaires)
                 .Include(d => d.MembreDirection)
                 .FirstOrDefaultAsync(d => d.Id == id);
-
             if (demande == null)
             {
                 return NotFound("Demande de stage non trouvée.");
@@ -125,20 +118,17 @@ namespace StageManager.Controllers
             }
 
             demande.Statut = demandeDto.Statut;
-
             if (demande.Statut == DemandeDeStage.StatusDemandeDeStage.Accepte)
             {
                 var existingAccord = await _db.DemandesAccord
                     .Include(a => a.stagiaires)
                     .FirstOrDefaultAsync(a => a.DemandeStageId == demande.Id);
-
                 Demandeaccord demandeAccord;
-
                 if (existingAccord == null)
                 {
                     demandeAccord = new Demandeaccord
                     {
-                        Status = StatusAccord.EnCours,
+                        Status = StatusAccord.EnAttente,
                         DemandeStageId = demande.Id,
                         DateCreation = DateTime.Now,
                         stagiaires = new List<Stagiaire>()
@@ -159,6 +149,9 @@ namespace StageManager.Controllers
                         demandeAccord.stagiaires.Add(stagiaire);
                     }
 
+                    // Mise à jour du statut du stagiaire
+                    stagiaire.Status = StagiaireStatus.Accepte;
+
                     // Envoi d'email d'acceptation
                     await EnvoyerEmailAsync(
                         stagiaire.Email,
@@ -169,13 +162,67 @@ namespace StageManager.Controllers
                         $"{GetAccordFormLink(demandeAccord.Id)}\n\n" +
                         "Cordialement,\nLe service des stages");
                 }
+
+                // Créer un stage
+                var encadreur = await _db.Encadreurs
+                    .Where(e => e.EstDisponible && e.NbrStagiaires < e.StagiaireMax)
+                    .FirstOrDefaultAsync();
+
+                if (encadreur != null)
+                {
+                    var departement = await _db.Departements.FindAsync(encadreur.DepartementId);
+
+                    if (departement != null)
+                    {
+                        // Créer une convention
+                        var convention = new Convention
+                        {
+                            DemandeAccordId = demandeAccord.Id
+                        };
+
+                        _db.Conventions.Add(convention);
+                        await _db.SaveChangesAsync();
+
+                        // Créer le stage
+                        var stage = new Stage
+                        {
+                            StagiaireGroup = string.Join(", ", demande.Stagiaires.Select(s => $"{s.Nom} {s.Prenom}")),
+                            DateDebut = DateTime.Now,
+                            DateFin = DateTime.Now.AddMonths(3),
+                            Statut = StatutStage.EnCours,
+                            ConventionId = convention.Id,
+                            DepartementId = departement.Id,
+                            EncadreurId = encadreur.Id
+                        };
+
+                        _db.Stages.Add(stage);
+                        await _db.SaveChangesAsync();
+
+                        // Associer les stagiaires au stage
+                        foreach (var stagiaire in demande.Stagiaires)
+                        {
+                            stagiaire.StageId = stage.Id;
+                        }
+
+                        // Mettre à jour le nombre de stagiaires pour l'encadreur
+                        encadreur.NbrStagiaires += demande.Stagiaires.Count;
+                        if (encadreur.NbrStagiaires >= encadreur.StagiaireMax)
+                        {
+                            encadreur.EstDisponible = false;
+                        }
+
+                        // Mettre à jour la convention avec l'ID du stage
+                        convention.StageId = stage.Id;
+
+                        await _db.SaveChangesAsync();
+                    }
+                }
             }
             else if (demande.Statut == DemandeDeStage.StatusDemandeDeStage.Refuse)
             {
                 foreach (var stagiaire in demande.Stagiaires)
                 {
                     stagiaire.Status = StagiaireStatus.Refuse;
-
                     // Envoi d'email de refus
                     await EnvoyerEmailAsync(
                         stagiaire.Email,
@@ -191,31 +238,24 @@ namespace StageManager.Controllers
             return Ok(demande.ToDto());
         }
 
-
-
         private async Task EnvoyerEmailAsync(string destinataire, string sujet, string corps)
         {
             var email = new MimeMessage();
             email.From.Add(new MailboxAddress("Service des Stages", _config["Email:From"]));
             email.To.Add(new MailboxAddress("", destinataire));
             email.Subject = sujet;
-
             email.Body = new TextPart(TextFormat.Plain)
             {
                 Text = corps
             };
-
             using var client = new MailKit.Net.Smtp.SmtpClient();
-
             await client.ConnectAsync(
                 _config["Email:Host"],
                 int.Parse(_config["Email:Port"]),
                 SecureSocketOptions.StartTls);
-
             await client.AuthenticateAsync(
                 _config["Email:Username"],
                 _config["Email:Password"]);
-
             await client.SendAsync(email);
             await client.DisconnectAsync(true);
         }
@@ -224,13 +264,13 @@ namespace StageManager.Controllers
         {
             return $"{_config["Frontend:BaseUrl"]}/accord/{accordId}/completer";
         }
+
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteDemandeDeStage(int id)
+        public async Task<ActionResult> DeleteDemandeDeStage(int id)
         {
             var demande = await _db.DemandesDeStage
                 .Include(d => d.Stagiaires)
                 .FirstOrDefaultAsync(d => d.Id == id);
-
             if (demande == null)
             {
                 return NotFound("Demande de stage non trouvée.");
@@ -244,9 +284,7 @@ namespace StageManager.Controllers
 
             _db.DemandesDeStage.Remove(demande);
             await _db.SaveChangesAsync();
-
             return NoContent();
         }
-
     }
 }

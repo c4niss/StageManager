@@ -29,7 +29,6 @@ namespace StageManager.Controllers
                 .Include(s => s.Departement)
                 .Include(s => s.Stagiaires)
                 .ToListAsync();
-
             return stages.Select(s => new StageDto
             {
                 Id = s.Id,
@@ -60,7 +59,6 @@ namespace StageManager.Controllers
                 .Include(s => s.Departement)
                 .Include(s => s.Stagiaires)
                 .FirstOrDefaultAsync(s => s.Id == id);
-
             if (stage == null)
             {
                 return NotFound();
@@ -85,7 +83,6 @@ namespace StageManager.Controllers
                     Email = st.Email
                 }).ToList()
             };
-
             return stageDto;
         }
 

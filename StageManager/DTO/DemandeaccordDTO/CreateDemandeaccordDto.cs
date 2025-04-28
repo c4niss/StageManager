@@ -8,10 +8,8 @@ namespace StageManager.DTO.DemandeaccordDTO
     {
         [Required]
         public List<int> StagiaireId { get; set; }
-
         [Required]
         public int DemandeStageId { get; set; }
-
         public DateTime DateCreation { get; set; } = DateTime.Now;
     }
 }

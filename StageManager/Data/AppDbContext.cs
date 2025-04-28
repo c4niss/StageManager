@@ -24,14 +24,15 @@ namespace TestRestApi.Data
         public DbSet<Memoire> Memoires { get; set; }
         public DbSet<Stage> Stages { get; set; }
         public DbSet<Theme> Themes { get; set; }
+        public DbSet<PointageMois> PointageMois { get; set; }
+        public DbSet<JourPresence> jourPresences { get; set; }
         public DbSet<Utilisateur> Utilisateurs { get; set; }
 
-        // DbSets pour un accès plus facile aux types spécifiques
+        public DbSet<MembreDirection> MembresDirection { get; set; }
         public DbSet<Stagiaire> Stagiaires { get; set; }
         public DbSet<ChefDepartement> ChefDepartements { get; set; }
         public DbSet<Encadreur> Encadreurs { get; set; }
-        // Ajoutez MembreDirection si nécessaire
-        public DbSet<MembreDirection> MembresDirection { get; set; }
+        public DbSet<Admin> Admins { get; set; }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -130,17 +131,16 @@ namespace TestRestApi.Data
                 .HasForeignKey<FicheEvaluationStagiaire>(f => f.StagiaireId)
                 .HasPrincipalKey<Stagiaire>(s => s.Id) // Référence Utilisateurs.Id
                 .OnDelete(DeleteBehavior.NoAction);
-            modelBuilder.Entity<DemandeDepotMemoire>()
-                .HasOne(d => d.Encadreur)
-                .WithMany()
-                .HasForeignKey(d => d.EncadreurId)
-                .OnDelete(DeleteBehavior.NoAction);
-            modelBuilder.Entity<Demandeaccord>()
-                .HasOne(d => d.ChefDepartement)
-                .WithMany()
-                .HasForeignKey(d => d.ChefDepartementId)
+            modelBuilder.Entity<Utilisateur>()
+                .HasDiscriminator<string>("TypeUtilisateur")
+                .HasValue<Admin>("Admin")
+                .HasValue<MembreDirection>("MembreDirection");
+            modelBuilder.Entity<ChefDepartement>()
+                .HasOne(c => c.Departement)
+                .WithOne(d => d.ChefDepartement)
+                .HasForeignKey<ChefDepartement>(c => c.DepartementId)
+                .IsRequired(false) // Assurez-vous que cette clé étrangère est requise
                 .OnDelete(DeleteBehavior.SetNull);
-
         }
 
     }

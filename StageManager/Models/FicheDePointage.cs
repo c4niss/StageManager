@@ -5,11 +5,12 @@ namespace StageManager.Models
 {
     public class FicheDePointage
     {
-    
         [Key]
         public int Id { get; set; }
+
         [Required]
-        public DateTime DateCreation { get; set; } = new DateTime(2017, 01, 03);
+        public DateTime DateCreation { get; set; } = DateTime.Now;
+
         [Required]
         public string NomPrenomStagiaire { get; set; }
 
@@ -29,10 +30,12 @@ namespace StageManager.Models
 
         public NatureStage NatureStage { get; set; }
 
-        // Données de pointage (stockées sous forme de JSON ou autre format approprié)  
+        // Données de pointage (stockées sous forme de JSON ou autre format approprié)
         public string DonneesPointage { get; set; }
+
         public bool EstValide { get; set; }
-        // Relations  
+
+        // Relations
         [Required]
         [ForeignKey("Stagiaire")]
         public int StagiaireId { get; set; }
@@ -48,5 +51,8 @@ namespace StageManager.Models
         public virtual Stagiaire Stagiaire { get; set; }
         public virtual Encadreur Encadreur { get; set; }
         public virtual Stage Stage { get; set; }
+
+        // Collection des mois de pointage pour cette fiche
+        public virtual ICollection<PointageMois> PointageMois { get; set; } = new List<PointageMois>();
     }
 }

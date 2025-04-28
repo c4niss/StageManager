@@ -1,4 +1,5 @@
-﻿using StageManager.Models;
+﻿using StageManager.DTO;
+using StageManager.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace StageManager.DTOs
@@ -33,5 +34,8 @@ namespace StageManager.DTOs
 
         // Données de pointage au format JSON
         public string DonneesPointage { get; set; }
+
+        // Collection de mois de pointage
+        public List<PointageMoisDto> PointageMois { get; set; }
     }
 }

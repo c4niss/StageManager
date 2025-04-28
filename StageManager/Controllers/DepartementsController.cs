@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StageManager.DTO.DepartementDTO;
 using StageManager.DTO.DepartementDTO.StageManager.DTOs;
@@ -50,6 +51,7 @@ namespace StageManager.Controllers
 
         // POST: api/Departements
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<DepartementDto>> CreateDepartement(CreateDepartementDto createDto)
         {
             var departement = new Departement
@@ -99,40 +101,70 @@ namespace StageManager.Controllers
 
             return NoContent();
         }
-
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteDepartement(int id)
         {
-            // Find all dependent DemandesAccord records
-            var demandesAccord = await _context.DemandesAccord
-                .Where(d => d.ChefDepartementId == id)
-                .ToListAsync();
-
-            // Set ChefDepartementId to null
-            foreach (var demande in demandesAccord)
+            // Utiliser un transaction pour s'assurer que toutes les opérations sont atomiques
+            using (var transaction = await _context.Database.BeginTransactionAsync())
             {
-                demande.ChefDepartementId = null;
+                try
+                {
+                    var departement = await _context.Departements.FindAsync(id);
+                    if (departement == null)
+                    {
+                        return NotFound();
+                    }
+
+                    // Modification: Utiliser une requête SQL directe pour gérer le chef de département
+                    if (departement.ChefDepartementId.HasValue)
+                    {
+                        // Désassocier le chef du département
+                        await _context.Database.ExecuteSqlRawAsync(
+                            "UPDATE Departements SET ChefDepartementId = NULL WHERE Id = {0}", id);
+
+                        // Désassocier le département du chef dans la table Utilisateurs
+                        await _context.Database.ExecuteSqlRawAsync(
+                            "UPDATE Utilisateurs SET DepartementId = NULL WHERE Id = {0} AND TypeUtilisateur = 'ChefDepartement'",
+                            departement.ChefDepartementId.Value);
+                    }
+
+                    // Mettre à null le DepartementId pour tous les encadreurs associés
+                    var encadreurs = await _context.Encadreurs
+                        .Where(e => e.DepartementId == id)
+                        .ToListAsync();
+                    foreach (var encadreur in encadreurs)
+                    {
+                        encadreur.DepartementId = null;
+                    }
+                    await _context.SaveChangesAsync();
+
+                    // Récupérer tous les domaines associés à ce département
+                    var domaines = await _context.Domaines
+                        .Where(d => d.DepartementId == id)
+                        .ToListAsync();
+
+                    // Supprimer tous les domaines associés
+                    _context.Domaines.RemoveRange(domaines);
+                    await _context.SaveChangesAsync();
+
+                    // Supprimer ensuite le département
+                    _context.Departements.Remove(departement);
+                    await _context.SaveChangesAsync();
+
+                    // Valider la transaction
+                    await transaction.CommitAsync();
+
+                    return NoContent();
+                }
+                catch (Exception ex)
+                {
+                    // Annuler toutes les modifications en cas d'erreur
+                    await transaction.RollbackAsync();
+                    return StatusCode(500, $"Une erreur est survenue lors de la suppression: {ex.Message}");
+                }
             }
-
-            // Save changes to DemandesAccord
-            await _context.SaveChangesAsync();
-
-            // Now delete the department
-            var departement = await _context.Departements.FindAsync(id);
-            if (departement == null)
-            {
-                return NotFound();
-            }
-
-            _context.Departements.Remove(departement);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
         }
-
-
-
-
 
         private bool DepartementExists(int id)
         {

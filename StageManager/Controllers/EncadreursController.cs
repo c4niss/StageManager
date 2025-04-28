@@ -1,11 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StageManager.DTO.EncadreurDTO;
 using StageManager.Mapping;
 using StageManager.Models;
-using System.Security.Cryptography;
-using System.Text;
+using Microsoft.AspNetCore.Identity;
 using TestRestApi.Data;
+using System.Security.Claims;
 
 namespace StageManager.Controllers
 {
@@ -50,6 +51,7 @@ namespace StageManager.Controllers
         }
         // POST: api/Encadreurs
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<EncadreurDto>> CreateEncadreur(CreateEncadreurDto createDto)
         {
             // Validate the departement exists
@@ -75,6 +77,17 @@ namespace StageManager.Controllers
                 return BadRequest("Le domaine sélectionné n'appartient pas au département spécifié");
             }
 
+            // Vérifier si le nom d'utilisateur existe déjà
+            var existingUsername = await _context.Utilisateurs
+                .FirstOrDefaultAsync(u => u.Username == createDto.Username);
+            if (existingUsername != null)
+            {
+                return BadRequest("Le nom d'utilisateur existe déjà.");
+            }
+
+            // Utiliser le même hashage de mot de passe que StagiairesController
+            var passwordHasher = new PasswordHasher<Encadreur>();
+
             var encadreur = new Encadreur
             {
                 Nom = createDto.Nom,
@@ -82,13 +95,15 @@ namespace StageManager.Controllers
                 Username = createDto.Username,
                 Email = createDto.Email,
                 Telephone = createDto.Telephone,
-                MotDePasse = HashPassword(createDto.MotDePasse),
+                MotDePasse = passwordHasher.HashPassword(null, createDto.MotDePasse),
+                Fonction = createDto.Fonction,
                 DepartementId = createDto.DepartementId,
                 DomaineId = createDto.DomaineId,
                 EstDisponible = true,
+                EstActif = false,
                 NbrStagiaires = 0,
                 StagiaireMax = 3,
-                Role = "Encadreur"
+                Role = UserRoles.Encadreur
             };
 
             _context.Encadreurs.Add(encadreur);
@@ -99,13 +114,9 @@ namespace StageManager.Controllers
 
         // PUT: api/Encadreurs/5
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateEncadreur(int id, UpdateEncadreurDto updateDto)
         {
-            if (id != updateDto.Id)
-            {
-                return BadRequest("L'ID ne correspond pas");
-            }
-
             var encadreur = await _context.Encadreurs.FindAsync(id);
             if (encadreur == null)
             {
@@ -136,7 +147,8 @@ namespace StageManager.Controllers
 
             if (updateDto.StagiaireMax.HasValue)
                 encadreur.StagiaireMax = updateDto.StagiaireMax.Value;
-
+            if (updateDto.EstActif.HasValue)
+                encadreur.EstActif = updateDto.EstActif.Value;
             if (updateDto.DepartementId.HasValue)
             {
                 var departement = await _context.Departements.FindAsync(updateDto.DepartementId.Value);
@@ -170,6 +182,7 @@ namespace StageManager.Controllers
 
         // DELETE: api/Encadreurs/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteEncadreur(int id)
         {
             var encadreur = await _context.Encadreurs.FindAsync(id);
@@ -222,19 +235,100 @@ namespace StageManager.Controllers
 
             return Ok(encadreurs.Select(e => e.ToDto()));
         }
+        // GET: api/Encadreurs/current
+        [HttpGet("current")]
+        [Authorize(Roles = "Encadreur")]
+        public async Task<ActionResult<EncadreurDto>> GetCurrentEncadreur()
+        {
+            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
+                return Unauthorized("Token invalide ou utilisateur non identifié");
+
+            var encadreur = await _context.Encadreurs
+                .Include(e => e.Departement)
+                .Include(e => e.Domaine)
+                .FirstOrDefaultAsync(e => e.Id == id);
+
+            if (encadreur == null)
+                return NotFound("Encadreur non trouvé");
+
+            return encadreur.ToDto();
+        }
+
+        // PUT: api/Encadreurs/update-password
+        [HttpPut("update-password")]
+        [Authorize(Roles = "Encadreur")]
+        public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordModel model)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
+                return Unauthorized("Token invalide ou utilisateur non identifié");
+
+            var encadreur = await _context.Encadreurs.FindAsync(id);
+            if (encadreur == null)
+                return NotFound("Encadreur non trouvé");
+
+            // Vérifier que le mot de passe actuel est correct
+            var passwordHasher = new PasswordHasher<Encadreur>();
+            var verificationResult = passwordHasher.VerifyHashedPassword(encadreur, encadreur.MotDePasse, model.CurrentPassword);
+            if (verificationResult == Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed)
+                return BadRequest("Le mot de passe actuel est incorrect");
+
+            // Mettre à jour le mot de passe
+            encadreur.MotDePasse = passwordHasher.HashPassword(encadreur, model.NewPassword);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Mot de passe mis à jour avec succès" });
+        }
+        // PUT: api/Encadreurs/update-encadreur-info
+        [HttpPut("update-encadreur-info")]
+        [Authorize(Roles = "Encadreur")]
+        public async Task<IActionResult> UpdateEncadreurInfo([FromBody] UpdateEncadreurInfoDto updateDto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
+                return Unauthorized("Token invalide ou utilisateur non identifié");
+
+            var encadreur = await _context.Encadreurs.FindAsync(id);
+            if (encadreur == null)
+                return NotFound("Encadreur non trouvé");
+
+            // Mettre à jour les propriétés si elles sont fournies
+            if (!string.IsNullOrEmpty(updateDto.Email))
+                encadreur.Email = updateDto.Email;
+
+            if (!string.IsNullOrEmpty(updateDto.Telephone))
+                encadreur.Telephone = updateDto.Telephone;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+                return Ok(new { message = "Informations mises à jour avec succès" });
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!EncadreurExists(id))
+                    return NotFound("Encadreur non trouvé");
+                else
+                    throw;
+            }
+        }
 
         private bool EncadreurExists(int id)
         {
             return _context.Encadreurs.Any(e => e.Id == id);
-        }
-
-        private static string HashPassword(string password)
-        {
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                byte[] hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-                return Convert.ToBase64String(hashedBytes);
-            }
         }
     }
 }
