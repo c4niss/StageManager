@@ -26,7 +26,5 @@ public class DemandeaccordDto
     public string? Email { get; set; }
     public string? DiplomeObtention { get; set; }
     public NatureStage? NatureStage { get; set; }
-    public string? Nom { get; set; }
-    public string? Prenom { get; set; }
     public DateTime DateCreation { get; set; }
 }

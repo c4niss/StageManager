@@ -10,6 +10,19 @@ namespace StageManager.DTO.DemandeaccordDTO
         public NatureStage? NatureStage { get; set; }
 
         [Required(ErrorMessage = "Le thème est requis")]
-        public int? ThemeId { get; set; }
+        public string ThemeNom { get; set; }
+        [Required(ErrorMessage = "Le numéro du département est requis")]
+        public int DepartementId { get; set; }
+
+        [Required(ErrorMessage = "Le domaine est requis")]
+        public int DomaineId { get; set; }
+        [Required(ErrorMessage = "L'université / institut / école est requise")]
+        public string UniversiteInstitutEcole { get; set; }
+
+        [Required(ErrorMessage = "La filière / spécialité est requise")]
+        public string FiliereSpecialite { get; set; }
+
+        [Required(ErrorMessage = "Le diplôme d'obtention est requis")]
+        public string DiplomeObtention { get; set; }
     }
 }

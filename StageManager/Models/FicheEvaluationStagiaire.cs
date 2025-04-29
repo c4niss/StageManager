@@ -116,13 +116,11 @@ namespace StageManager.Models
         [Required]
         public NiveauEvaluationStagiaire Communication { get; set; }
 
-        // Appréciation globale du tuteur
-        [Required]
-        public string AppreciationGlobaleTuteur { get; set; }
+        public string? AppreciationGlobaleTuteur { get; set; }
 
         // Champ d'observation
         [MaxLength(500)]
-        public string Observations { get; set; }
+        public string? Observations { get; set; }
 
         // Informations de signature
         [Required]

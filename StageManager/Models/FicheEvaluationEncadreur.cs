@@ -109,7 +109,7 @@ namespace StageManager.Models
 
         // Champ d'observation
         [MaxLength(500)]
-        public string Observations { get; set; }
+        public string? Observations { get; set; }
 
         // Informations sur le stagiaire évaluateur
         [Required]

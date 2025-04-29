@@ -24,7 +24,6 @@ namespace StageManager.Controllers
 
         // GET: api/FicheEvaluationEncadreur
         [HttpGet]
-        [Authorize(Roles = "Direction,Encadreur,Stagiaire")]
         public async Task<ActionResult<IEnumerable<FicheEvaluationEncadreurListDto>>> GetFichesEvaluationEncadreur()
         {
             var fichesEvaluation = await _context.FichesEvaluationEncadreur
@@ -45,7 +44,6 @@ namespace StageManager.Controllers
 
         // GET: api/FicheEvaluationEncadreur/5
         [HttpGet("{id}")]
-        [Authorize(Roles = "Direction,Encadreur,Stagiaire")]
         public async Task<ActionResult<FicheEvaluationEncadreurReadDto>> GetFicheEvaluationEncadreur(int id)
         {
             var ficheEvaluation = await _context.FichesEvaluationEncadreur
@@ -125,7 +123,6 @@ namespace StageManager.Controllers
 
         // POST: api/FicheEvaluationEncadreur
         [HttpPost]
-        [Authorize(Roles = "Stagiaire")]
         public async Task<ActionResult<FicheEvaluationEncadreurReadDto>> CreateFicheEvaluationEncadreur(FicheEvaluationEncadreurCreateDto ficheEvaluationDto)
         {
             // Vérifier si l'encadreur et le stage existent
@@ -263,7 +260,6 @@ namespace StageManager.Controllers
 
         // PUT: api/FicheEvaluationEncadreur/5
         [HttpPut("{id}")]
-        [Authorize(Roles = "Stagiaire")]
         public async Task<IActionResult> UpdateFicheEvaluationEncadreur(int id, FicheEvaluationEncadreurUpdateDto ficheEvaluationDto)
         {
             if (id != ficheEvaluationDto.Id)
@@ -348,7 +344,6 @@ namespace StageManager.Controllers
 
         // DELETE: api/FicheEvaluationEncadreur/5
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Direction,Stagiaire")]
         public async Task<IActionResult> DeleteFicheEvaluationEncadreur(int id)
         {
             var ficheEvaluation = await _context.FichesEvaluationEncadreur.FindAsync(id);
@@ -372,7 +367,6 @@ namespace StageManager.Controllers
 
         // GET: api/FicheEvaluationEncadreur/Encadreur/5
         [HttpGet("Encadreur/{encadreurId}")]
-        [Authorize(Roles = "Direction,Encadreur")]
         public async Task<ActionResult<IEnumerable<FicheEvaluationEncadreurListDto>>> GetFichesEvaluationByEncadreur(int encadreurId)
         {
             var fichesEvaluation = await _context.FichesEvaluationEncadreur
@@ -392,7 +386,6 @@ namespace StageManager.Controllers
 
         // GET: api/FicheEvaluationEncadreur/Stage/5
         [HttpGet("Stage/{stageId}")]
-        [Authorize(Roles = "Direction,Encadreur,Stagiaire")]
         public async Task<ActionResult<FicheEvaluationEncadreurReadDto>> GetFicheEvaluationByStage(int stageId)
         {
             var ficheEvaluation = await _context.FichesEvaluationEncadreur

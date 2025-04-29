@@ -141,6 +141,11 @@ namespace TestRestApi.Data
                 .HasForeignKey<ChefDepartement>(c => c.DepartementId)
                 .IsRequired(false) // Assurez-vous que cette clé étrangère est requise
                 .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<Theme>()
+                .HasOne(t => t.Domaine)
+                .WithMany(d => d.Themes)
+                .HasForeignKey(t => t.DomaineId)
+                .OnDelete(DeleteBehavior.Restrict); // ou NoAction
         }
 
     }

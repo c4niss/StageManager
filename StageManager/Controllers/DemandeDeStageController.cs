@@ -166,8 +166,6 @@ namespace StageManager.Controllers
                  var stage = new Stage
                  {
                     StagiaireGroup = string.Join(", ", demande.Stagiaires.Select(s => $"{s.Nom} {s.Prenom}")),
-                    DateDebut = DateTime.Now,
-                    DateFin = DateTime.Now.AddMonths(3),
                     Statut = StatutStage.EnAttente,
                     Stagiaires = new List<Stagiaire>()
                 };

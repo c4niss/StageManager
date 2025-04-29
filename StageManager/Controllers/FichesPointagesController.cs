@@ -27,7 +27,6 @@ namespace StageManager.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Direction,Encadreur")]
         public async Task<ActionResult<IEnumerable<FichePointageListDto>>> GetFichesPointage()
         {
             var fichesPointage = await _context.FichesDePointage.ToListAsync();
@@ -46,7 +45,6 @@ namespace StageManager.Controllers
 
         // GET: api/FichePointage/5
         [HttpGet("{id}")]
-        [Authorize(Roles = "Direction,Encadreur,Stagiaire")]
         public async Task<ActionResult<FichePointageReadDto>> GetFichePointage(int id)
         {
             var fichePointage = await _context.FichesDePointage
@@ -504,7 +502,6 @@ namespace StageManager.Controllers
 
         // GET: api/FichePointage/Encadreur/5
         [HttpGet("Encadreur/{encadreurId}")]
-        [Authorize(Roles = "Direction,Encadreur")]
         public async Task<ActionResult<IEnumerable<FichePointageListDto>>> GetFichesPointageByEncadreur(int encadreurId)
         {
             var fichesPointage = await _context.FichesDePointage

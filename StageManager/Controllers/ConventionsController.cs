@@ -98,18 +98,11 @@ namespace StageManager.Controllers
                 return NotFound();
             }
 
-            var membreDirection = await _context.MembresDirection.FindAsync(updateConventionDto.MembreDirectionId);
-            if (membreDirection == null)
-            {
-                return BadRequest("Le membre de direction spécifié n'existe pas.");
-            }
-
             // Sauvegarde de l'ancien statut pour comparaison
             var oldStatus = convention.status;
 
             // Mise à jour des propriétés de base
             convention.CheminFichier = updateConventionDto.CheminFichier;
-            convention.MembreDirectionId = updateConventionDto.MembreDirectionId;
             convention.status = updateConventionDto.Status;
 
             // Logique spécifique si le statut a changé à Accepté
@@ -163,7 +156,9 @@ namespace StageManager.Controllers
                                 MissionsConfieesAuStagiaire = "À compléter",
                                 NomPrenomEvaluateur = "",
                                 DateEvaluation = DateTime.Now,
+                                EncadreurId = convention.Stage.EncadreurId,
                                 StagiaireId = stagiaire.Id,
+
                                 StageId = convention.Stage.Id
                             };
 

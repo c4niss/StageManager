@@ -20,9 +20,8 @@ namespace StageManager.Models
         [Required]
         public Statusconvention status { get; set; } = Statusconvention.EnCours;
 
-        [Required]
         [StringLength(255)]
-        public string CheminFichier { get; set; }
+        public string? CheminFichier { get; set; }
 
         [Required]
         [ForeignKey("Stage")]
@@ -32,7 +31,7 @@ namespace StageManager.Models
         public Demandeaccord DemandeAccord { get; set; }
         [Required]
         [ForeignKey("MembreDirection")]
-        public int MembreDirectionId { get; set; }
+        public int? MembreDirectionId { get; set; }
         public Stage? Stage { get; set; }
         public MembreDirection MembreDirection { get; set; }
     }

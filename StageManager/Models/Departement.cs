@@ -20,6 +20,7 @@ namespace StageManager.Models
 
         [JsonIgnore]
         public List<Encadreur> Encadreurs { get; set; }
+        public List<Theme> Themes { get; set; }
 
         [JsonIgnore]
         public List<Domaine> Domaines { get; set; }

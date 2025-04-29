@@ -34,8 +34,6 @@ namespace StageManager.Mapping
                 Email = demande.Email,
                 DiplomeObtention = demande.DiplomeObtention,
                 NatureStage = demande.NatureStage,
-                Nom = demande.Nom,
-                Prenom = demande.Prenom,
                 DemandeStageId = demande.DemandeStageId
             };
         }

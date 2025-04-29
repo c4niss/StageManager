@@ -8,10 +8,7 @@ namespace StageManager.DTO.ConventionDTO
         [Required]
         [StringLength(255)]
         public string CheminFichier { get; set; }
-
-        [Required]
-        public int MembreDirectionId { get; set; }
         public Convention.Statusconvention Status { get; set; }
-        public int? StageId { get; set; }
+
     }
 }

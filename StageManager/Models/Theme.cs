@@ -26,5 +26,11 @@ namespace StageManager.Models
 
         [JsonIgnore]
         public Stage? Stage { get; set; }
+
+        public int DepartementId { get; set; }
+        public Departement Departement { get; set; }
+
+        public int DomaineId { get; set; }
+        public Domaine Domaine { get; set; }
     }
 }
