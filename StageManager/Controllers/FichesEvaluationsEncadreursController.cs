@@ -121,151 +121,10 @@ namespace StageManager.Controllers
             };
         }
 
-        // POST: api/FicheEvaluationEncadreur
-        [HttpPost]
-        public async Task<ActionResult<FicheEvaluationEncadreurReadDto>> CreateFicheEvaluationEncadreur(FicheEvaluationEncadreurCreateDto ficheEvaluationDto)
-        {
-            // Vérifier si l'encadreur et le stage existent
-            var encadreur = await _context.Encadreurs.FindAsync(ficheEvaluationDto.EncadreurId);
-            var stage = await _context.Stages.FindAsync(ficheEvaluationDto.StageId);
-
-            if (encadreur == null || stage == null)
-            {
-                return BadRequest("Encadreur ou stage introuvable");
-            }
-
-            // Vérifier si une évaluation existe déjà pour cet encadreur et ce stage
-            var existingFiche = await _context.FichesEvaluationEncadreur
-                .FirstOrDefaultAsync(f => f.EncadreurId == ficheEvaluationDto.EncadreurId && f.StageId == ficheEvaluationDto.StageId);
-
-            if (existingFiche != null)
-            {
-                return Conflict("Une évaluation existe déjà pour cet encadreur et ce stage");
-            }
-
-            var ficheEvaluation = new FicheEvaluationEncadreur
-            {
-                DateCreation = DateTime.Now,
-                NomPrenomEncadreur = ficheEvaluationDto.NomPrenomEncadreur,
-                FonctionEncadreur = ficheEvaluationDto.FonctionEncadreur,
-                DateDebutStage = ficheEvaluationDto.DateDebutStage,
-                DateFinStage = ficheEvaluationDto.DateFinStage,
-
-                // Catégorie 1: Planification du travail
-                FixeObjectifsClairs = ficheEvaluationDto.FixeObjectifsClairs,
-                GereImprevus = ficheEvaluationDto.GereImprevus,
-                RencontreRegulierementEtudiants = ficheEvaluationDto.RencontreRegulierementEtudiants,
-                OrganiseEtapesRecherche = ficheEvaluationDto.OrganiseEtapesRecherche,
-
-                // Catégorie 2: Comprendre et faire comprendre
-                ExpliqueClairementContenu = ficheEvaluationDto.ExpliqueClairementContenu,
-                InterrogeEtudiantsFeedback = ficheEvaluationDto.InterrogeEtudiantsFeedback,
-                MaitriseConnaissances = ficheEvaluationDto.MaitriseConnaissances,
-                EnseigneFaitDemonstrations = ficheEvaluationDto.EnseigneFaitDemonstrations,
-
-                // Catégorie 3: Susciter la participation
-                InviteEtudiantsQuestions = ficheEvaluationDto.InviteEtudiantsQuestions,
-                RepondQuestionsEtudiants = ficheEvaluationDto.RepondQuestionsEtudiants,
-                EncourageInitiativesEtudiants = ficheEvaluationDto.EncourageInitiativesEtudiants,
-                InterrogeEtudiantsTravailEffectue = ficheEvaluationDto.InterrogeEtudiantsTravailEffectue,
-                AccepteExpressionPointsVueDifferents = ficheEvaluationDto.AccepteExpressionPointsVueDifferents,
-
-                // Catégorie 4: Communication orale
-                CommuniqueClairementSimplement = ficheEvaluationDto.CommuniqueClairementSimplement,
-                CritiqueConstructive = ficheEvaluationDto.CritiqueConstructive,
-                PondereQuantiteInformation = ficheEvaluationDto.PondereQuantiteInformation,
-
-                // Catégorie 5: Sens de responsabilité
-                EfficaceGestionSupervision = ficheEvaluationDto.EfficaceGestionSupervision,
-                MaintientAttitudeProfessionnelle = ficheEvaluationDto.MaintientAttitudeProfessionnelle,
-                TransmetDonneesFiables = ficheEvaluationDto.TransmetDonneesFiables,
-
-                // Catégorie 6: Stimuler la motivation des étudiants
-                OrienteEtudiantsRessourcesPertinentes = ficheEvaluationDto.OrienteEtudiantsRessourcesPertinentes,
-                MontreImportanceSujetTraite = ficheEvaluationDto.MontreImportanceSujetTraite,
-                ProdigueEncouragementsFeedback = ficheEvaluationDto.ProdigueEncouragementsFeedback,
-                DemontreInteretRecherche = ficheEvaluationDto.DemontreInteretRecherche,
-
-                Observations = ficheEvaluationDto.Observations,
-                NomPrenomStagiaireEvaluateur = ficheEvaluationDto.NomPrenomStagiaireEvaluateur,
-                DateEvaluation = DateTime.Now,
-                EncadreurId = ficheEvaluationDto.EncadreurId,
-                StageId = ficheEvaluationDto.StageId
-            };
-
-            _context.FichesEvaluationEncadreur.Add(ficheEvaluation);
-            await _context.SaveChangesAsync();
-
-            // Recharger l'entité avec ses relations pour le DTO de retour
-            ficheEvaluation = await _context.FichesEvaluationEncadreur
-                .Include(f => f.Encadreur)
-                .Include(f => f.Stage)
-                .FirstOrDefaultAsync(f => f.Id == ficheEvaluation.Id);
-
-            return CreatedAtAction(nameof(GetFicheEvaluationEncadreur), new { id = ficheEvaluation.Id },
-                new FicheEvaluationEncadreurReadDto
-                {
-                    Id = ficheEvaluation.Id,
-                    DateCreation = ficheEvaluation.DateCreation,
-                    NomPrenomEncadreur = ficheEvaluation.NomPrenomEncadreur,
-                    FonctionEncadreur = ficheEvaluation.FonctionEncadreur,
-                    DateDebutStage = ficheEvaluation.DateDebutStage,
-                    DateFinStage = ficheEvaluation.DateFinStage,
-
-                    // Toutes les propriétés d'évaluation...
-                    FixeObjectifsClairs = ficheEvaluation.FixeObjectifsClairs,
-                    GereImprevus = ficheEvaluation.GereImprevus,
-                    RencontreRegulierementEtudiants = ficheEvaluation.RencontreRegulierementEtudiants,
-                    OrganiseEtapesRecherche = ficheEvaluation.OrganiseEtapesRecherche,
-                    ExpliqueClairementContenu = ficheEvaluation.ExpliqueClairementContenu,
-                    InterrogeEtudiantsFeedback = ficheEvaluation.InterrogeEtudiantsFeedback,
-                    MaitriseConnaissances = ficheEvaluation.MaitriseConnaissances,
-                    EnseigneFaitDemonstrations = ficheEvaluation.EnseigneFaitDemonstrations,
-                    InviteEtudiantsQuestions = ficheEvaluation.InviteEtudiantsQuestions,
-                    RepondQuestionsEtudiants = ficheEvaluation.RepondQuestionsEtudiants,
-                    EncourageInitiativesEtudiants = ficheEvaluation.EncourageInitiativesEtudiants,
-                    InterrogeEtudiantsTravailEffectue = ficheEvaluation.InterrogeEtudiantsTravailEffectue,
-                    AccepteExpressionPointsVueDifferents = ficheEvaluation.AccepteExpressionPointsVueDifferents,
-                    CommuniqueClairementSimplement = ficheEvaluation.CommuniqueClairementSimplement,
-                    CritiqueConstructive = ficheEvaluation.CritiqueConstructive,
-                    PondereQuantiteInformation = ficheEvaluation.PondereQuantiteInformation,
-                    EfficaceGestionSupervision = ficheEvaluation.EfficaceGestionSupervision,
-                    MaintientAttitudeProfessionnelle = ficheEvaluation.MaintientAttitudeProfessionnelle,
-                    TransmetDonneesFiables = ficheEvaluation.TransmetDonneesFiables,
-                    OrienteEtudiantsRessourcesPertinentes = ficheEvaluation.OrienteEtudiantsRessourcesPertinentes,
-                    MontreImportanceSujetTraite = ficheEvaluation.MontreImportanceSujetTraite,
-                    ProdigueEncouragementsFeedback = ficheEvaluation.ProdigueEncouragementsFeedback,
-                    DemontreInteretRecherche = ficheEvaluation.DemontreInteretRecherche,
-
-                    Observations = ficheEvaluation.Observations,
-                    NomPrenomStagiaireEvaluateur = ficheEvaluation.NomPrenomStagiaireEvaluateur,
-                    DateEvaluation = ficheEvaluation.DateEvaluation,
-
-                    Encadreur = new EncadreurMinimalDto
-                    {
-                        Id = ficheEvaluation.Encadreur.Id,
-                        NomPrenom = $"{ficheEvaluation.Encadreur.Nom} {ficheEvaluation.Encadreur.Prenom}",
-                        Fonction = ficheEvaluation.Encadreur.Fonction,
-                        Departement = ficheEvaluation.Encadreur.Departement
-                    },
-
-                    Stage = new StageMinimalDto
-                    {
-                        Id = ficheEvaluation.Stage.Id,
-                        DateDebut = ficheEvaluation.Stage.DateDebut,
-                        DateFin = ficheEvaluation.Stage.DateFin
-                    }
-                });
-        }
-
         // PUT: api/FicheEvaluationEncadreur/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateFicheEvaluationEncadreur(int id, FicheEvaluationEncadreurUpdateDto ficheEvaluationDto)
         {
-            if (id != ficheEvaluationDto.Id)
-            {
-                return BadRequest();
-            }
 
             var ficheEvaluation = await _context.FichesEvaluationEncadreur.FindAsync(id);
 
@@ -279,12 +138,6 @@ namespace StageManager.Controllers
             {
                 return BadRequest("L'évaluation ne peut plus être modifiée après 48 heures");
             }
-
-            ficheEvaluation.NomPrenomEncadreur = ficheEvaluationDto.NomPrenomEncadreur;
-            ficheEvaluation.FonctionEncadreur = ficheEvaluationDto.FonctionEncadreur;
-            ficheEvaluation.DateDebutStage = ficheEvaluationDto.DateDebutStage;
-            ficheEvaluation.DateFinStage = ficheEvaluationDto.DateFinStage;
-
             // Catégorie 1: Planification du travail
             ficheEvaluation.FixeObjectifsClairs = ficheEvaluationDto.FixeObjectifsClairs;
             ficheEvaluation.GereImprevus = ficheEvaluationDto.GereImprevus;

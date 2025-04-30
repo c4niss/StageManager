@@ -4,21 +4,6 @@ using System.ComponentModel.DataAnnotations;
 public class FicheEvaluationEncadreurUpdateDto
 {
     [Required]
-    public int Id { get; set; }
-
-    [Required]
-    public string NomPrenomEncadreur { get; set; }
-
-    [Required]
-    public string FonctionEncadreur { get; set; }
-
-    [Required]
-    public DateTime DateDebutStage { get; set; }
-
-    [Required]
-    public DateTime DateFinStage { get; set; }
-
-    [Required]
     public NiveauEvaluationEncadreur FixeObjectifsClairs { get; set; }
 
     [Required]

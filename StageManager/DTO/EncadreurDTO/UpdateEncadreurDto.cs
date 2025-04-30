@@ -4,8 +4,6 @@ namespace StageManager.DTO.EncadreurDTO
 {
     public class UpdateEncadreurDto
     {
-        [Required]
-        public int Id { get; set; }
 
         [StringLength(50, MinimumLength = 2)]
         public string Nom { get; set; }
@@ -24,12 +22,13 @@ namespace StageManager.DTO.EncadreurDTO
 
         [StringLength(100)]
         public string Fonction { get; set; }
-        [StringLength(100)]
-        public bool? EstActif { get; set; }
+
+
         public bool? EstDisponible { get; set; }
         public int? StagiaireMax { get; set; }
 
         public int? DepartementId { get; set; }
         public int? DomaineId { get; set; }
+        public bool? EstActif { get; set; }
     }
 }

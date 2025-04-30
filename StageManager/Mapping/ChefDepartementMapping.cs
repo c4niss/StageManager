@@ -14,6 +14,7 @@ namespace StageManager.Mapping
                 Id = chef.Id,
                 Nom = chef.Nom,
                 Prenom = chef.Prenom,
+                Username = chef.Username,
                 Email = chef.Email,
                 Telephone = chef.Telephone ?? string.Empty,
                 EstActif = chef.EstActif,

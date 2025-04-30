@@ -1,4 +1,5 @@
 ﻿using StageManager.DTO;
+using StageManager.DTO.PointageMoisDTO;
 using StageManager.Models;
 using System.ComponentModel.DataAnnotations;
 
@@ -6,9 +7,6 @@ namespace StageManager.DTOs
 {
     public class FichePointageUpdateDto
     {
-        [Required(ErrorMessage = "L'identifiant est obligatoire")]
-        public int Id { get; set; }
-
         [Required(ErrorMessage = "Le nom et prénom du stagiaire sont obligatoires")]
         [StringLength(100, ErrorMessage = "Le nom et prénom ne peuvent pas dépasser 100 caractères")]
         public string NomPrenomStagiaire { get; set; }
@@ -36,6 +34,6 @@ namespace StageManager.DTOs
         public string DonneesPointage { get; set; }
 
         // Collection de mois de pointage
-        public List<PointageMoisDto> PointageMois { get; set; }
+        public List<PointageMoisUpdateDto> PointageMois { get; set; }
     }
 }

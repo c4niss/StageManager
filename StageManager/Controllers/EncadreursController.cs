@@ -51,6 +51,7 @@ namespace StageManager.Controllers
         }
         // POST: api/Encadreurs
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<EncadreurDto>> CreateEncadreur(CreateEncadreurDto createDto)
         {
             // Validate the departement exists
@@ -181,6 +182,7 @@ namespace StageManager.Controllers
 
         // DELETE: api/Encadreurs/5
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteEncadreur(int id)
         {
             var encadreur = await _context.Encadreurs.FindAsync(id);
@@ -235,6 +237,7 @@ namespace StageManager.Controllers
         }
         // GET: api/Encadreurs/current
         [HttpGet("current")]
+        [Authorize(Roles = "Encadreur")]
         public async Task<ActionResult<EncadreurDto>> GetCurrentEncadreur()
         {
             // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
@@ -256,6 +259,7 @@ namespace StageManager.Controllers
 
         // PUT: api/Encadreurs/update-password
         [HttpPut("update-password")]
+        [Authorize(Roles = "Encadreur")]
         public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordModel model)
         {
             if (!ModelState.IsValid)
@@ -285,6 +289,7 @@ namespace StageManager.Controllers
         }
         // PUT: api/Encadreurs/update-encadreur-info
         [HttpPut("update-encadreur-info")]
+        [Authorize(Roles = "Encadreur")]
         public async Task<IActionResult> UpdateEncadreurInfo([FromBody] UpdateEncadreurInfoDto updateDto)
         {
             if (!ModelState.IsValid)

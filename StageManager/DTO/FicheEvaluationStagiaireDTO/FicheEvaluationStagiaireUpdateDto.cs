@@ -4,39 +4,6 @@ using System.ComponentModel.DataAnnotations;
 public class FicheEvaluationStagiaireUpdateDto
 {
     [Required]
-    public int Id { get; set; }
-
-    [Required]
-    public string NomPrenomStagiaire { get; set; }
-
-    [Required]
-    public string FormationStagiaire { get; set; }
-
-    [Required]
-    public string DureeStage { get; set; }
-
-    [Required]
-    public DateTime PeriodeDu { get; set; }
-
-    [Required]
-    public DateTime PeriodeAu { get; set; }
-
-    [Required]
-    public string StructureAccueil { get; set; }
-
-    [Required]
-    public int NombreSeancesPrevues { get; set; }
-
-    [Required]
-    public string NomPrenomEncadreur { get; set; }
-
-    [Required]
-    public string FonctionEncadreur { get; set; }
-
-    [Required]
-    public string ThemeStage { get; set; }
-
-    [Required]
     public string MissionsConfieesAuStagiaire { get; set; }
 
     [Required]

@@ -12,6 +12,7 @@ namespace StageManager.Mapping
                 Id = membre.Id,
                 Nom = membre.Nom,
                 Prenom = membre.Prenom,
+                Username = membre.Username,
                 Email = membre.Email,
                 Telephone = membre.Telephone,
                 Fonction = membre.Fonction,
@@ -27,6 +28,7 @@ namespace StageManager.Mapping
                 Nom = dto.Nom,
                 Prenom = dto.Prenom,
                 Email = dto.Email,
+                Username = dto.Username,
                 Telephone = null, // ou une valeur par défaut si nécessaire
                 Fonction = dto.Fonction,
                 MotDePasse = dto.MotDePasse, // Doit être hashé dans le contrôleur
