@@ -12,8 +12,8 @@ using TestRestApi.Data;
 namespace StageManager.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250428163930_allll")]
-    partial class allll
+    [Migration("20250505185459_aaa")]
+    partial class aaa
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -111,7 +111,6 @@ namespace StageManager.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("CheminFichier")
-                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
@@ -521,7 +520,6 @@ namespace StageManager.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Observations")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
@@ -576,7 +574,6 @@ namespace StageManager.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("AppreciationGlobaleTuteur")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("AppreciationRenduTravail")
@@ -650,7 +647,6 @@ namespace StageManager.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Observations")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
@@ -827,7 +823,7 @@ namespace StageManager.Migrations
                     b.Property<int?>("DepartementId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("DomaineId")
+                    b.Property<int>("DomaineId")
                         .HasColumnType("int");
 
                     b.Property<int?>("EncadreurId")
@@ -868,7 +864,10 @@ namespace StageManager.Migrations
                     b.Property<int>("DemandeaccordId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("DomaineId")
+                    b.Property<int>("DepartementId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DomaineId")
                         .HasColumnType("int");
 
                     b.Property<string>("Nom")
@@ -883,6 +882,8 @@ namespace StageManager.Migrations
 
                     b.HasIndex("DemandeaccordId")
                         .IsUnique();
+
+                    b.HasIndex("DepartementId");
 
                     b.HasIndex("DomaineId");
 
@@ -1357,9 +1358,11 @@ namespace StageManager.Migrations
                         .WithMany()
                         .HasForeignKey("DepartementId");
 
-                    b.HasOne("StageManager.Models.Domaine", null)
+                    b.HasOne("StageManager.Models.Domaine", "Domaine")
                         .WithMany("Stages")
-                        .HasForeignKey("DomaineId");
+                        .HasForeignKey("DomaineId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
 
                     b.HasOne("StageManager.Models.Encadreur", "Encadreur")
                         .WithMany("Stages")
@@ -1367,6 +1370,8 @@ namespace StageManager.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Departement");
+
+                    b.Navigation("Domaine");
 
                     b.Navigation("Encadreur");
                 });
@@ -1379,15 +1384,27 @@ namespace StageManager.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("StageManager.Models.Domaine", null)
+                    b.HasOne("StageManager.Models.Departement", "Departement")
                         .WithMany("Themes")
-                        .HasForeignKey("DomaineId");
+                        .HasForeignKey("DepartementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StageManager.Models.Domaine", "Domaine")
+                        .WithMany("Themes")
+                        .HasForeignKey("DomaineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("StageManager.Models.Stage", "Stage")
                         .WithMany()
                         .HasForeignKey("StageId");
 
                     b.Navigation("Demandeaccord");
+
+                    b.Navigation("Departement");
+
+                    b.Navigation("Domaine");
 
                     b.Navigation("Stage");
                 });
@@ -1469,6 +1486,8 @@ namespace StageManager.Migrations
                     b.Navigation("Domaines");
 
                     b.Navigation("Encadreurs");
+
+                    b.Navigation("Themes");
                 });
 
             modelBuilder.Entity("StageManager.Models.Domaine", b =>

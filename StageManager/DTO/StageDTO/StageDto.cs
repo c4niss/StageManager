@@ -24,6 +24,9 @@ namespace StageManager.DTO.StageDTO
         public int? DepartementId { get; set; }
         public string DepartementNom { get; set; }
 
+        public int? DomaineId { get; set; }
+        public string DomaineNom { get; set; }
+
         public int? EncadreurId { get; set; }
         public string EncadreurNomComplet { get; set; }
 

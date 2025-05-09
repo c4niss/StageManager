@@ -39,15 +39,17 @@ namespace StageManager.Models
 
         [JsonIgnore]
         public Convention Convention { get; set; }
+        public int? DomaineId { get; set; }
+        public Domaine Domaine { get; set; }
 
         [JsonIgnore]
         public Departement Departement { get; set; }
 
         // Autres propriétés
         public List<Stagiaire> Stagiaires { get; set; }
-        public int FicheEvaluationStagiaireId { get; set; }
-        public FicheEvaluationStagiaire FicheEvaluationStagiaire { get; set; }
-        public List<FicheEvaluationEncadreur> FicheEvaluationEncadreur { get; set; }
+        public List<FicheEvaluationStagiaire> ficheEvaluationStagiaire { get; set; }
+        public int ficheevaluationencadreurId { get; set; }
+        public FicheEvaluationEncadreur ficheEvaluationEncadreur { get; set; }
         public int AvenantId { get; set; }
         public int MemoireId { get; set; }
         public Avenant Avenant { get; set; }

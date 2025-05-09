@@ -51,7 +51,6 @@ namespace StageManager.Controllers
         }
         // POST: api/Encadreurs
         [HttpPost]
-        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<EncadreurDto>> CreateEncadreur(CreateEncadreurDto createDto)
         {
             // Validate the departement exists

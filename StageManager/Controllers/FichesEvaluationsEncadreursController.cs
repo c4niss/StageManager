@@ -38,6 +38,7 @@ namespace StageManager.Controllers
                 FonctionEncadreur = f.FonctionEncadreur,
                 DateEvaluation = f.DateEvaluation,
                 NomPrenomStagiaireEvaluateur = f.NomPrenomStagiaireEvaluateur,
+                StageId = f.StageId,
                 ScoreMoyen = CalculerScoreMoyen(f)
             }).ToList();
         }
@@ -64,6 +65,8 @@ namespace StageManager.Controllers
                 FonctionEncadreur = ficheEvaluation.FonctionEncadreur,
                 DateDebutStage = ficheEvaluation.DateDebutStage,
                 DateFinStage = ficheEvaluation.DateFinStage,
+                StageId = ficheEvaluation.StageId,
+
 
                 // Catégorie 1: Planification du travail
                 FixeObjectifsClairs = ficheEvaluation.FixeObjectifsClairs,
@@ -134,10 +137,10 @@ namespace StageManager.Controllers
             }
 
             // Vérifier que la fiche n'a pas été créée depuis plus de 48 heures
-            if ((DateTime.Now - ficheEvaluation.DateCreation).TotalHours > 48)
-            {
-                return BadRequest("L'évaluation ne peut plus être modifiée après 48 heures");
-            }
+            //if ((DateTime.Now - ficheEvaluation.DateCreation).TotalHours > 48)
+            // {
+            //    return BadRequest("L'évaluation ne peut plus être modifiée après 48 heures");
+            //}
             // Catégorie 1: Planification du travail
             ficheEvaluation.FixeObjectifsClairs = ficheEvaluationDto.FixeObjectifsClairs;
             ficheEvaluation.GereImprevus = ficheEvaluationDto.GereImprevus;
@@ -233,6 +236,7 @@ namespace StageManager.Controllers
                 FonctionEncadreur = f.FonctionEncadreur,
                 DateEvaluation = f.DateEvaluation,
                 NomPrenomStagiaireEvaluateur = f.NomPrenomStagiaireEvaluateur,
+                StageId = f.StageId,
                 ScoreMoyen = CalculerScoreMoyen(f)
             }).ToList();
         }

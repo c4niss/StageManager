@@ -18,7 +18,8 @@ namespace StageManager.Mapping
                 Specialite = stagiaire.Specialite,
                 EstActif = stagiaire.EstActif,
                 Status = stagiaire.Status,
-                Username = stagiaire.Username
+                Username = stagiaire.Username,
+                StageId = stagiaire.StageId
             };
         }
     }

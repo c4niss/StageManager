@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace StageManager.Migrations
 {
     /// <inheritdoc />
-    public partial class all : Migration
+    public partial class aaa : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -89,7 +89,7 @@ namespace StageManager.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     DateDepot = table.Column<DateTime>(type: "datetime2", nullable: false),
                     status = table.Column<int>(type: "int", nullable: false),
-                    CheminFichier = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    CheminFichier = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     StageId = table.Column<int>(type: "int", nullable: false),
                     DemandeAccordId = table.Column<int>(type: "int", nullable: false),
                     MembreDirectionId = table.Column<int>(type: "int", nullable: false)
@@ -281,7 +281,7 @@ namespace StageManager.Migrations
                     MontreImportanceSujetTraite = table.Column<int>(type: "int", nullable: false),
                     ProdigueEncouragementsFeedback = table.Column<int>(type: "int", nullable: false),
                     DemontreInteretRecherche = table.Column<int>(type: "int", nullable: false),
-                    Observations = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    Observations = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     NomPrenomStagiaireEvaluateur = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     DateEvaluation = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EncadreurId = table.Column<int>(type: "int", nullable: false),
@@ -330,8 +330,8 @@ namespace StageManager.Migrations
                     MethodeOrganisationTravail = table.Column<int>(type: "int", nullable: false),
                     AnalyseExplicationSynthese = table.Column<int>(type: "int", nullable: false),
                     Communication = table.Column<int>(type: "int", nullable: false),
-                    AppreciationGlobaleTuteur = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Observations = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    AppreciationGlobaleTuteur = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Observations = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     NomPrenomEvaluateur = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     DateEvaluation = table.Column<DateTime>(type: "datetime2", nullable: false),
                     StagiaireId = table.Column<int>(type: "int", nullable: false),
@@ -375,13 +375,13 @@ namespace StageManager.Migrations
                     DateDebut = table.Column<DateTime>(type: "datetime2", nullable: false),
                     DateFin = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Statut = table.Column<int>(type: "int", nullable: false),
-                    ConventionId = table.Column<int>(type: "int", nullable: false),
-                    DepartementId = table.Column<int>(type: "int", nullable: false),
-                    EncadreurId = table.Column<int>(type: "int", nullable: false),
+                    ConventionId = table.Column<int>(type: "int", nullable: true),
+                    DepartementId = table.Column<int>(type: "int", nullable: true),
+                    EncadreurId = table.Column<int>(type: "int", nullable: true),
+                    DomaineId = table.Column<int>(type: "int", nullable: false),
                     FicheEvaluationStagiaireId = table.Column<int>(type: "int", nullable: false),
                     AvenantId = table.Column<int>(type: "int", nullable: false),
-                    MemoireId = table.Column<int>(type: "int", nullable: false),
-                    DomaineId = table.Column<int>(type: "int", nullable: true)
+                    MemoireId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -390,8 +390,7 @@ namespace StageManager.Migrations
                         name: "FK_Stages_Departements_DepartementId",
                         column: x => x.DepartementId,
                         principalTable: "Departements",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Stages_Domaines_DomaineId",
                         column: x => x.DomaineId,
@@ -408,7 +407,8 @@ namespace StageManager.Migrations
                     Nom = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     DemandeaccordId = table.Column<int>(type: "int", nullable: false),
                     StageId = table.Column<int>(type: "int", nullable: true),
-                    DomaineId = table.Column<int>(type: "int", nullable: true)
+                    DepartementId = table.Column<int>(type: "int", nullable: false),
+                    DomaineId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -420,10 +420,17 @@ namespace StageManager.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
+                        name: "FK_Themes_Departements_DepartementId",
+                        column: x => x.DepartementId,
+                        principalTable: "Departements",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
                         name: "FK_Themes_Domaines_DomaineId",
                         column: x => x.DomaineId,
                         principalTable: "Domaines",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Themes_Stages_StageId",
                         column: x => x.StageId,
@@ -687,6 +694,11 @@ namespace StageManager.Migrations
                 table: "Themes",
                 column: "DemandeaccordId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Themes_DepartementId",
+                table: "Themes",
+                column: "DepartementId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Themes_DomaineId",

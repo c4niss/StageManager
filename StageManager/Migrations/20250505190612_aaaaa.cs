@@ -5,20 +5,18 @@
 namespace StageManager.Migrations
 {
     /// <inheritdoc />
-    public partial class allllll : Migration
+    public partial class aaaaa : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AlterColumn<int>(
                 name: "DomaineId",
-                table: "Themes",
+                table: "Stages",
                 type: "int",
-                nullable: false,
-                defaultValue: 0,
+                nullable: true,
                 oldClrType: typeof(int),
-                oldType: "int",
-                oldNullable: true);
+                oldType: "int");
         }
 
         /// <inheritdoc />
@@ -26,11 +24,13 @@ namespace StageManager.Migrations
         {
             migrationBuilder.AlterColumn<int>(
                 name: "DomaineId",
-                table: "Themes",
+                table: "Stages",
                 type: "int",
-                nullable: true,
+                nullable: false,
+                defaultValue: 0,
                 oldClrType: typeof(int),
-                oldType: "int");
+                oldType: "int",
+                oldNullable: true);
         }
     }
 }

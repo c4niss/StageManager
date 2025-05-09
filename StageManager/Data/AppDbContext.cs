@@ -46,6 +46,14 @@ namespace TestRestApi.Data
             // Vous pouvez aussi configurer l'index sur le discriminateur pour améliorer les performances
             modelBuilder.Entity<Utilisateur>()
                 .HasIndex("TypeUtilisateur");
+
+            // Créer un index unique pour ChefDepartement-DepartementId seulement
+            // Cela remplace l'index unique qui empêchait plusieurs encadreurs par département
+            modelBuilder.Entity<ChefDepartement>()
+                .HasIndex(c => c.DepartementId)
+                .IsUnique()
+                .HasFilter("\"TypeUtilisateur\" = 'ChefDepartement'");
+
             // Relation optionnelle si vous gardez DeleteBehavior.ClientSetNull
             modelBuilder.Entity<DemandeDeStage>()
                 .HasOne(d => d.MembreDirection)
@@ -147,7 +155,5 @@ namespace TestRestApi.Data
                 .HasForeignKey(t => t.DomaineId)
                 .OnDelete(DeleteBehavior.Restrict); // ou NoAction
         }
-
     }
-
 }

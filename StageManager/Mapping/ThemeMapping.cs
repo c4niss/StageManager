@@ -13,7 +13,11 @@ namespace StageManager.Mapping
                 Nom = theme.Nom,
                 DemandeaccordId = theme.DemandeaccordId,
                 StageId = theme.StageId,
-                StageNom = theme.Stage?.StagiaireGroup ?? string.Empty
+                StageNom = theme.Stage?.StagiaireGroup ?? string.Empty,
+                DepartementId = theme.DepartementId,
+                DepartementNom = theme.Departement?.Nom,
+                DomaineId = theme.DomaineId,
+                DomaineNom = theme.Domaine?.Nom,
             };
         }
     }

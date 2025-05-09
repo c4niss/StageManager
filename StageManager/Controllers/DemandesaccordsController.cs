@@ -15,6 +15,7 @@ using MimeKit.Text;
 using MailKit.Net.Smtp;
 using Microsoft.Extensions.DependencyInjection;
 using StageManager.BackgroundService;
+using System.Security.Claims;
 
 namespace StageManager.Controllers
 {
@@ -35,7 +36,6 @@ namespace StageManager.Controllers
             _logger = logger;
         }
 
-        // GET: api/Demandeaccord
         [HttpGet]
         public async Task<ActionResult<IEnumerable<DemandeaccordDto>>> GetDemandesAccord()
         {
@@ -46,11 +46,9 @@ namespace StageManager.Controllers
                 .Include(d => d.Encadreur)
                 .Include(d => d.ChefDepartement)
                 .ToListAsync();
-
             return demandes.Select(d => DemandeAccordMapping.ToDto(d)).ToList();
         }
 
-        // GET: api/Demandeaccord/5
         [HttpGet("{id}")]
         public async Task<ActionResult<DemandeaccordDto>> GetDemandeaccord(int id)
         {
@@ -60,15 +58,40 @@ namespace StageManager.Controllers
                 .Include(d => d.Theme)
                 .Include(d => d.Encadreur)
                 .FirstOrDefaultAsync(d => d.Id == id);
-
-            if (demandeaccord == null)
-            {
-                return NotFound();
-            }
-
+            if (demandeaccord == null) return NotFound();
             return DemandeAccordMapping.ToDto(demandeaccord);
         }
-        // PUT: api/Demandeaccord/MembreDirectionUpdate/5
+        [HttpGet("ByChefDepartement/{id}")]
+        public async Task<ActionResult<IEnumerable<DemandeaccordDto>>> GetDemandesByChefDepartement(int id)
+        {
+            // Vérifier que le chef de département existe
+            var chefExists = await _context.ChefDepartements.AnyAsync(c => c.Id == id);
+            if (!chefExists)
+            {
+                return NotFound("Chef de département non trouvé");
+            }
+
+            // Pour les chefs de département, on vérifie que l'utilisateur courant est bien le chef demandé
+            if (User.IsInRole("ChefDepartement"))
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int currentUserId) || currentUserId != id)
+                {
+                    return Forbid("Vous n'êtes pas autorisé à accéder aux demandes d'un autre chef de département");
+                }
+            }
+
+            var demandes = await _context.DemandesAccord
+                .Include(d => d.stagiaires)
+                .Include(d => d.DemandeDeStage)
+                .Include(d => d.Theme)
+                .Include(d => d.Encadreur)
+                .Where(d => d.ChefDepartementId == id)
+                .ToListAsync();
+
+            return demandes.Select(d => DemandeAccordMapping.ToDto(d)).ToList();
+        }
+
         [HttpPut("MembreDirectionUpdate/{id}")]
         public async Task<IActionResult> UpdateMembreDirectionDemandeaccord(int id, UpdatemembreDirectionDemandeaccorDto updateDto)
         {
@@ -76,32 +99,18 @@ namespace StageManager.Controllers
                 .Include(d => d.stagiaires)
                 .Include(d => d.Theme)
                 .FirstOrDefaultAsync(d => d.Id == id);
-
-            if (demandeaccord == null)
-                return NotFound();
-
-            // Vérifier que le département existe
+            if (demandeaccord == null) return NotFound();
             var departement = await _context.Departements.FindAsync(updateDto.DepartementId);
-            if (departement == null)
-                return BadRequest("Département inexistant.");
-
-            // Vérifier que le domaine existe
+            if (departement == null) return BadRequest("Département inexistant.");
             var domaine = await _context.Domaines.FindAsync(updateDto.DomaineId);
-            if (domaine == null)
-                return BadRequest("Domaine inexistant.");
-
-            // Récupérer le StageId depuis un stagiaire
+            if (domaine == null) return BadRequest("Domaine inexistant.");
             int? stageId = demandeaccord.stagiaires.FirstOrDefault(s => s.StageId != null)?.StageId;
-
-            // Vérifier si le thème existe déjà (par nom, département, domaine, stage)
             var theme = await _context.Themes
                 .FirstOrDefaultAsync(t =>
                     t.Nom == updateDto.ThemeNom &&
                     t.DepartementId == updateDto.DepartementId &&
                     t.DomaineId == updateDto.DomaineId &&
                     t.StageId == stageId);
-
-            // Créer le thème si besoin
             if (theme == null)
             {
                 theme = new Theme
@@ -115,74 +124,68 @@ namespace StageManager.Controllers
                 _context.Themes.Add(theme);
                 await _context.SaveChangesAsync();
             }
-
-            // Associer le thème à la demande d'accord
             demandeaccord.ThemeId = theme.Id;
             demandeaccord.NatureStage = updateDto.NatureStage;
             demandeaccord.UniversiteInstitutEcole = updateDto.UniversiteInstitutEcole;
             demandeaccord.FiliereSpecialite = updateDto.FiliereSpecialite;
             demandeaccord.DiplomeObtention = updateDto.DiplomeObtention;
-
+            demandeaccord.DateSoumissionStagiaire = DateTime.Now;
+            if (!IsMembreDirectionPartComplete(demandeaccord))
+            {
+                return BadRequest("La partie stagiaire n'est pas complète");
+            }
+            await _context.SaveChangesAsync();
+            StartRappelService();
+            if (demandeaccord.ChefDepartementId.HasValue)
+            {
+                var chef = await _context.ChefDepartements.FindAsync(demandeaccord.ChefDepartementId);
+                if (chef != null)
+                {
+                    await EnvoyerEmailAsync(
+                        chef.Email,
+                        "Nouvelle demande à valider",
+                        $"Bonjour {chef.Prenom},\n\n" +
+                        $"Une nouvelle demande d'accord (n°{demandeaccord.Id}) a été soumise par le stagiaire.\n" +
+                        "Merci de la traiter dans les délais.\n\n" +
+                        "Cordialement,\nLe service des stages");
+                }
+            }
+            StartRappelService();
             try
             {
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!_context.DemandesAccord.Any(e => e.Id == id))
-                    return NotFound();
+                if (!_context.DemandesAccord.Any(e => e.Id == id)) return NotFound();
                 throw;
             }
-
             return NoContent();
         }
 
-
-
-
-        // PUT: api/Demandeaccord/ChefDepartementUpdate/5
         [HttpPut("ChefDepartementUpdate/{id}")]
         public async Task<IActionResult> UpdateChefDepartementDemandeaccord(int id, UpdateChefDepartementDemandeaccordDto updateDto)
         {
             var demandeaccord = await _context.DemandesAccord.FindAsync(id);
-            if (demandeaccord == null)
-            {
-                return NotFound();
-            }
-
-            // Vérifier que la date de fin est après la date de début
-            if (updateDto.DateFin <= updateDto.DateDebut)
-            {
-                return BadRequest("La date de fin doit être postérieure à la date de début.");
-            }
-
-            // Mettre à jour les propriétés par le chef de département
+            if (demandeaccord == null) return NotFound();
+            if (updateDto.DateFin <= updateDto.DateDebut) return BadRequest("La date de fin doit être postérieure à la date de début.");
             demandeaccord.ServiceAccueil = updateDto.ServiceAccueil;
             demandeaccord.DateDebut = updateDto.DateDebut;
             demandeaccord.DateFin = updateDto.DateFin;
             demandeaccord.NombreSeancesParSemaine = updateDto.NombreSeancesParSemaine;
             demandeaccord.DureeSeances = updateDto.DureeSeances;
-
             try
             {
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!DemandeaccordExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                if (!DemandeaccordExists(id)) return NotFound();
+                else throw;
             }
-
             return NoContent();
         }
 
-        // PUT: api/Demandeaccord/UpdateStatus/5
         [HttpPut("UpdateStatus/{id}")]
         public async Task<IActionResult> UpdateStatus(int id, UpdateDemandeaccordStatusDto updateDto)
         {
@@ -192,40 +195,23 @@ namespace StageManager.Controllers
                 .Include(d => d.Theme)
                 .Include(d => d.Encadreur)
                 .FirstOrDefaultAsync(d => d.Id == id);
-
-            if (demandeaccord == null)
-                return NotFound();
-
-            // Vérification de complétude
-            if (!IsDemandeaccordComplete(demandeaccord))
-                return BadRequest("La demande d'accord doit être complète avant de changer le statut.");
-
-            // Vérification des dates
-            if (demandeaccord.DateFin <= demandeaccord.DateDebut)
-                return BadRequest("La date de fin doit être postérieure à la date de début.");
-
+            if (demandeaccord == null) return NotFound();
+            if (!IsDemandeaccordComplete(demandeaccord)) return BadRequest("La demande d'accord doit être complète avant de changer le statut.");
+            if (demandeaccord.DateFin <= demandeaccord.DateDebut) return BadRequest("La date de fin doit être postérieure à la date de début.");
             var oldStatus = demandeaccord.Status;
             demandeaccord.Status = updateDto.Status;
-
-            // Récupérer le membre de direction depuis la demande de stage
             var demandedestage = await _context.DemandesDeStage
                 .Include(d => d.MembreDirection)
                 .FirstOrDefaultAsync(d => d.Id == demandeaccord.DemandeStageId);
-
             int? membreDirectionId = demandedestage?.MembreDirectionId;
-            if (membreDirectionId == null)
-                return BadRequest("Aucun membre de direction associé à la demande de stage.");
-
+            if (membreDirectionId == null) return BadRequest("Aucun membre de direction associé à la demande de stage.");
             try
             {
                 await _context.SaveChangesAsync();
-
-                // Traitement en cas d'acceptation
                 if (demandeaccord.Status == StatusAccord.Accepte)
                 {
                     var existingconvention = await _context.Conventions
                         .FirstOrDefaultAsync(a => a.DemandeAccordId == demandeaccord.Id);
-
                     Convention convention;
                     if (existingconvention == null)
                     {
@@ -237,15 +223,13 @@ namespace StageManager.Controllers
                             MembreDirectionId = membreDirectionId.Value
                         };
                         _context.Conventions.Add(convention);
-                        await _context.SaveChangesAsync(); // On sauvegarde pour générer l'Id
-                        demandeaccord.Convention = convention;
-                    }
-                    else
-                    {
-                        convention = existingconvention;
-                    }
+                        await _context.Database.ExecuteSqlRawAsync(
+                        "UPDATE DemandesAccord SET conventionId = {0} WHERE Id = {1}",
+                        convention.Id, demandeaccord.Id);
+                        //await _context.SaveChangesAsync();
 
-                    // Mise à jour du stage avec le ConventionId
+                    }
+                    else convention = existingconvention;
                     int? stageId = demandeaccord.stagiaires.FirstOrDefault(s => s.StageId != null)?.StageId;
                     if (stageId.HasValue)
                     {
@@ -255,16 +239,16 @@ namespace StageManager.Controllers
                             stage.DateDebut = demandeaccord.DateDebut ?? stage.DateDebut;
                             stage.DateFin = demandeaccord.DateFin ?? stage.DateFin;
                             stage.DepartementId = demandeaccord.Theme?.DepartementId ?? stage.DepartementId;
+                            stage.DomaineId = demandeaccord.Theme?.DomaineId ?? stage.DomaineId;
                             stage.Statut = StatutStage.EnCours;
                             stage.EncadreurId = demandeaccord.EncadreurId ?? stage.EncadreurId;
-                            stage.ConventionId = convention.Id; // ConventionId bien renseigné
+                            stage.ConventionId = convention.Id;
                             convention.StageId = stageId;
                             await _context.SaveChangesAsync();
                         }
                     }
                     convention.StageId = stageId;
 
-                    // Envoi d'e-mails aux stagiaires
                     foreach (var stagiaire in demandeaccord.stagiaires)
                     {
                         await EnvoyerEmailAsync(
@@ -293,17 +277,12 @@ namespace StageManager.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!DemandeaccordExists(id))
-                    return NotFound();
-                else
-                    throw;
+                if (!DemandeaccordExists(id)) return NotFound();
+                else throw;
             }
-
             return NoContent();
         }
 
-
-        // PUT: api/Demandeaccord/AssignEncadreur/5?encadreurId=10
         [HttpPut("AssignEncadreur/{id}")]
         public async Task<IActionResult> AssignEncadreur(int id, [FromQuery] int encadreurId)
         {
@@ -311,28 +290,15 @@ namespace StageManager.Controllers
                 .Include(d => d.stagiaires)
                 .Include(d => d.Theme)
                 .FirstOrDefaultAsync(d => d.Id == id);
-
-            if (demandeaccord == null)
-            {
-                return NotFound();
-            }
-
+            if (demandeaccord == null) return NotFound();
             var encadreur = await _context.Encadreurs.FindAsync(encadreurId);
-            if (encadreur == null)
-            {
-                return BadRequest("L'encadreur spécifié n'existe pas.");
-            }
-
+            if (encadreur == null) return BadRequest("L'encadreur spécifié n'existe pas.");
             demandeaccord.EncadreurId = encadreurId;
-
             try
             {
                 await _context.SaveChangesAsync();
-
-                // Envoi d'email à l'encadreur
                 string listeStagiaires = string.Join(", ", demandeaccord.stagiaires.Select(s => $"{s.Nom} {s.Prenom}"));
                 string theme = demandeaccord.Theme != null ? demandeaccord.Theme.Nom : "Non spécifié";
-
                 await EnvoyerEmailAsync(
                     encadreur.Email,
                     "Assignation d'encadrement de stage",
@@ -345,19 +311,12 @@ namespace StageManager.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!DemandeaccordExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                if (!DemandeaccordExists(id)) return NotFound();
+                else throw;
             }
-
             return NoContent();
         }
-        // PUT: api/Demandeaccord/AssignChefDepartement/5?chefDepartementId=10
+
         [HttpPut("AssignChefDepartement/{id}")]
         public async Task<IActionResult> AssignChefDepartement(int id, [FromQuery] int chefDepartementId)
         {
@@ -365,29 +324,17 @@ namespace StageManager.Controllers
                 .Include(d => d.stagiaires)
                 .Include(d => d.Theme)
                 .FirstOrDefaultAsync(d => d.Id == id);
-
-            if (demandeaccord == null)
-            {
-                return NotFound();
-            }
-
+            if (demandeaccord == null) return NotFound();
             var chefDepartement = await _context.ChefDepartements
                 .Include(c => c.Departement)
                 .FirstOrDefaultAsync(c => c.Id == chefDepartementId);
-
-            if (chefDepartement == null)
-            {
-                return BadRequest("Le chef de département spécifié n'existe pas.");
-            }
+            if (chefDepartement == null) return BadRequest("Le chef de département spécifié n'existe pas.");
             demandeaccord.ChefDepartementId = chefDepartementId;
             try
             {
                 await _context.SaveChangesAsync();
-
-                // Envoi d'email au chef de département
                 string listeStagiaires = string.Join(", ", demandeaccord.stagiaires.Select(s => $"{s.Nom} {s.Prenom}"));
                 string theme = demandeaccord.Theme != null ? demandeaccord.Theme.Nom : "Non spécifié";
-
                 await EnvoyerEmailAsync(
                     chefDepartement.Email,
                     "Assignation de demande de stage",
@@ -401,109 +348,39 @@ namespace StageManager.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!DemandeaccordExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                if (!DemandeaccordExists(id)) return NotFound();
+                else throw;
             }
-
             return NoContent();
         }
+
         [HttpDelete("{id}")]
-        // DELETE: api/Demandeaccord/5
         public async Task<IActionResult> DeleteDemandeacoord(int id)
         {
             var demandeaccord = await _context.DemandesAccord.FirstOrDefaultAsync(d => d.Id == id);
-            if (demandeaccord == null)
-            {
-                return NotFound();
-            }
+            if (demandeaccord == null) return NotFound();
             _context.DemandesAccord.Remove(demandeaccord);
             await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        private bool DemandeaccordExists(int id)
-        {
-            return _context.DemandesAccord.Any(e => e.Id == id);
-        }
-        // PUT: api/Demandeaccord/SubmitStagiairePart/5
-        [HttpPut("SubmitStagiairePart/{id}")]
-        public async Task<IActionResult> SubmitStagiairePart(int id, UpdateStagiaireDemandeaccordDto updateDto)
-        {
-            var demande = await _context.DemandesAccord
-                .Include(d => d.stagiaires)
-                .FirstOrDefaultAsync(d => d.Id == id);
-
-            if (demande == null)
-            {
-                return NotFound();
-            }
-            demande.UniversiteInstitutEcole = updateDto.UniversiteInstitutEcole;
-            demande.FiliereSpecialite = updateDto.FiliereSpecialite;
-            demande.Telephone = updateDto.Telephone;
-            demande.Email = updateDto.Email;
-            demande.DiplomeObtention = updateDto.DiplomeObtention;
-            demande.Nom = updateDto.Nom;
-            demande.Prenom = updateDto.Prenom;
-
-            if (!IsStagiairePartComplete(demande))
-            {
-                return BadRequest("La partie stagiaire n'est pas complète");
-            }
-
-            // Enregistrer la date de soumission
-            demande.DateSoumissionStagiaire = DateTime.Now;
-
-            await _context.SaveChangesAsync();
-            StartRappelService();
-            // Notifier le chef de département
-            if (demande.ChefDepartementId.HasValue)
-            {
-                var chef = await _context.ChefDepartements.FindAsync(demande.ChefDepartementId);
-                if (chef != null)
-                {
-                    await EnvoyerEmailAsync(
-                        chef.Email,
-                        "Nouvelle demande à valider",
-                        $"Bonjour {chef.Prenom},\n\n" +
-                        $"Une nouvelle demande d'accord (n°{demande.Id}) a été soumise par le stagiaire.\n" +
-                        "Merci de la traiter dans les délais.\n\n" +
-                        "Cordialement,\nLe service des stages");
-                }
-            }
-            StartRappelService();
-            return Ok("Partie stagiaire soumise avec succès");
-
-        }
+        private bool DemandeaccordExists(int id) => _context.DemandesAccord.Any(e => e.Id == id);
 
         private void StartRappelService()
         {
-            // Récupère directement le service depuis le fournisseur de services
             try
             {
                 var scope = _serviceProvider.CreateScope();
                 var scopedServices = scope.ServiceProvider;
-
-                // Récupère le service s'il est déjà enregistré
-                var rappelService = _serviceProvider.GetService<IHostedService>()
-                    as RappelBackgroundService;
-
+                var rappelService = _serviceProvider.GetService<IHostedService>() as RappelBackgroundService;
                 if (rappelService == null)
                 {
-                    // Si non, le crée et le démarre
                     _logger.LogInformation("Démarrage du service de rappel");
                     var backgroundService = ActivatorUtilities.CreateInstance<RappelBackgroundService>(
                         scopedServices,
                         scopedServices.GetRequiredService<ILogger<RappelBackgroundService>>(),
                         _serviceProvider,
                         _config);
-
-                    // Démarrage du service de façon asynchrone
                     Task.Run(() => backgroundService.StartAsync(CancellationToken.None));
                 }
             }
@@ -519,45 +396,31 @@ namespace StageManager.Controllers
             email.From.Add(new MailboxAddress("Service des Stages", _config["Email:From"]));
             email.To.Add(new MailboxAddress("", destinataire));
             email.Subject = sujet;
-
-            email.Body = new TextPart(TextFormat.Plain)
-            {
-                Text = corps
-            };
-
+            email.Body = new TextPart(TextFormat.Plain) { Text = corps };
             using var client = new MailKit.Net.Smtp.SmtpClient();
-
-            await client.ConnectAsync(
-                _config["Email:Host"],
-                int.Parse(_config["Email:Port"]),
-                SecureSocketOptions.StartTls);
-
-            await client.AuthenticateAsync(
-                _config["Email:Username"],
-                _config["Email:Password"]);
-
+            await client.ConnectAsync(_config["Email:Host"], int.Parse(_config["Email:Port"]), SecureSocketOptions.StartTls);
+            await client.AuthenticateAsync(_config["Email:Username"], _config["Email:Password"]);
             await client.SendAsync(email);
             await client.DisconnectAsync(true);
         }
-        private bool IsStagiairePartComplete(Demandeaccord demande)
-        {
-            return !string.IsNullOrEmpty(demande.UniversiteInstitutEcole)
-                && !string.IsNullOrEmpty(demande.FiliereSpecialite)
-                && !string.IsNullOrEmpty(demande.DiplomeObtention);
-        }
-        private bool IsDemandeaccordComplete(Demandeaccord demandeaccord)
-        {
-            return !string.IsNullOrWhiteSpace(demandeaccord.UniversiteInstitutEcole) &&
-                   !string.IsNullOrWhiteSpace(demandeaccord.FiliereSpecialite) &&
-                   demandeaccord.ThemeId != null &&
-                   !string.IsNullOrWhiteSpace(demandeaccord.DiplomeObtention) &&
-                   demandeaccord.NatureStage != null &&
-                   !string.IsNullOrWhiteSpace(demandeaccord.ServiceAccueil) &&
-                   demandeaccord.DateDebut != default(DateTime) &&
-                   demandeaccord.DateFin != default(DateTime) &&
-                   demandeaccord.NombreSeancesParSemaine > 0 &&
-                   demandeaccord.DureeSeances > 0 &&
-                   demandeaccord.EncadreurId != null;
-        }
+        private bool IsMembreDirectionPartComplete(Demandeaccord demandeaccord) =>
+            !string.IsNullOrWhiteSpace(demandeaccord.UniversiteInstitutEcole) &&
+            !string.IsNullOrWhiteSpace(demandeaccord.FiliereSpecialite) &&
+            demandeaccord.ThemeId != null &&
+            !string.IsNullOrWhiteSpace(demandeaccord.DiplomeObtention) &&
+            demandeaccord.NatureStage != null;
+
+        private bool IsDemandeaccordComplete(Demandeaccord demandeaccord) =>
+            !string.IsNullOrWhiteSpace(demandeaccord.UniversiteInstitutEcole) &&
+            !string.IsNullOrWhiteSpace(demandeaccord.FiliereSpecialite) &&
+            demandeaccord.ThemeId != null &&
+            !string.IsNullOrWhiteSpace(demandeaccord.DiplomeObtention) &&
+            demandeaccord.NatureStage != null &&
+            !string.IsNullOrWhiteSpace(demandeaccord.ServiceAccueil) &&
+            demandeaccord.DateDebut != default(DateTime) &&
+            demandeaccord.DateFin != default(DateTime) &&
+            demandeaccord.NombreSeancesParSemaine > 0 &&
+            demandeaccord.DureeSeances > 0 &&
+            demandeaccord.EncadreurId != null;
     }
 }

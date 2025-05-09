@@ -12,8 +12,8 @@ using TestRestApi.Data;
 namespace StageManager.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250429020428_alllllll")]
-    partial class alllllll
+    [Migration("20250505192730_aaaaaa")]
+    partial class aaaaaa
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -520,7 +520,6 @@ namespace StageManager.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Observations")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
@@ -552,7 +551,8 @@ namespace StageManager.Migrations
 
                     b.HasIndex("EncadreurId");
 
-                    b.HasIndex("StageId");
+                    b.HasIndex("StageId")
+                        .IsUnique();
 
                     b.ToTable("FichesEvaluationEncadreur");
                 });
@@ -575,7 +575,6 @@ namespace StageManager.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("AppreciationGlobaleTuteur")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("AppreciationRenduTravail")
@@ -649,7 +648,6 @@ namespace StageManager.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Observations")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
@@ -698,8 +696,7 @@ namespace StageManager.Migrations
 
                     b.HasIndex("EncadreurId");
 
-                    b.HasIndex("StageId")
-                        .IsUnique();
+                    b.HasIndex("StageId");
 
                     b.HasIndex("StagiaireId")
                         .IsUnique();
@@ -832,9 +829,6 @@ namespace StageManager.Migrations
                     b.Property<int?>("EncadreurId")
                         .HasColumnType("int");
 
-                    b.Property<int>("FicheEvaluationStagiaireId")
-                        .HasColumnType("int");
-
                     b.Property<int>("MemoireId")
                         .HasColumnType("int");
 
@@ -843,6 +837,9 @@ namespace StageManager.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Statut")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ficheevaluationencadreurId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -1277,8 +1274,8 @@ namespace StageManager.Migrations
                         .IsRequired();
 
                     b.HasOne("StageManager.Models.Stage", "Stage")
-                        .WithMany("FicheEvaluationEncadreur")
-                        .HasForeignKey("StageId")
+                        .WithOne("ficheEvaluationEncadreur")
+                        .HasForeignKey("StageManager.Models.FicheEvaluationEncadreur", "StageId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1296,8 +1293,8 @@ namespace StageManager.Migrations
                         .IsRequired();
 
                     b.HasOne("StageManager.Models.Stage", "Stage")
-                        .WithOne("FicheEvaluationStagiaire")
-                        .HasForeignKey("StageManager.Models.FicheEvaluationStagiaire", "StageId")
+                        .WithMany("ficheEvaluationStagiaire")
+                        .HasForeignKey("StageId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1361,9 +1358,10 @@ namespace StageManager.Migrations
                         .WithMany()
                         .HasForeignKey("DepartementId");
 
-                    b.HasOne("StageManager.Models.Domaine", null)
+                    b.HasOne("StageManager.Models.Domaine", "Domaine")
                         .WithMany("Stages")
-                        .HasForeignKey("DomaineId");
+                        .HasForeignKey("DomaineId")
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("StageManager.Models.Encadreur", "Encadreur")
                         .WithMany("Stages")
@@ -1371,6 +1369,8 @@ namespace StageManager.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Departement");
+
+                    b.Navigation("Domaine");
 
                     b.Navigation("Encadreur");
                 });
@@ -1516,15 +1516,15 @@ namespace StageManager.Migrations
                     b.Navigation("Convention")
                         .IsRequired();
 
-                    b.Navigation("FicheEvaluationEncadreur");
-
-                    b.Navigation("FicheEvaluationStagiaire")
-                        .IsRequired();
-
                     b.Navigation("Memoire")
                         .IsRequired();
 
                     b.Navigation("Stagiaires");
+
+                    b.Navigation("ficheEvaluationEncadreur")
+                        .IsRequired();
+
+                    b.Navigation("ficheEvaluationStagiaire");
                 });
 
             modelBuilder.Entity("StageManager.Models.ChefDepartement", b =>

@@ -7,6 +7,8 @@ using StageManager.Models;
 using StageManager.Seeds;
 using System.Text;
 using TestRestApi.Data;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.FileProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -70,6 +72,11 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddOpenApi();
 builder.Services.AddHostedService<RappelBackgroundService>();
 
+// Dans Program.cs
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 512000; // 500KB
+});
 
 var app = builder.Build();
 
@@ -80,7 +87,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
     app.MapOpenApi();
 }
+// Configuration pour servir les fichiers statiques
+app.UseStaticFiles(); // Pour servir les fichiers statiques de wwwroot par défaut
 
+// Configuration pour servir les fichiers du dossier uploads
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), "uploads")),
+    RequestPath = "/uploads"
+});
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 
@@ -91,6 +107,8 @@ app.MapControllers();
 
 // Avant app.UseHttpsRedirection();
 app.UseMiddleware<ExceptionMiddleware>();
+
+
 
 // Exécuter le seeder admin au démarrage
 using (var scope = app.Services.CreateScope())

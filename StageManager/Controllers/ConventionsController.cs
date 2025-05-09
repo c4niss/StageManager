@@ -139,7 +139,7 @@ namespace StageManager.Controllers
 
                             _context.FichesDePointage.Add(fichePointage);
 
-                            // Créer une fiche d'évaluation pour chaque stagiaire
+                            // Créer une fiche d'évaluation individuelle pour ce stagiaire
                             var ficheEvaluationStagiaire = new FicheEvaluationStagiaire
                             {
                                 DateCreation = DateTime.Now,
@@ -158,7 +158,6 @@ namespace StageManager.Controllers
                                 DateEvaluation = DateTime.Now,
                                 EncadreurId = convention.Stage.EncadreurId,
                                 StagiaireId = stagiaire.Id,
-
                                 StageId = convention.Stage.Id
                             };
 
@@ -287,7 +286,84 @@ namespace StageManager.Controllers
             await client.SendAsync(email);
             await client.DisconnectAsync(true);
         }
+        [HttpPost("upload")]
+        [Authorize(Roles = "MembreDirection")]
+        public async Task<ActionResult<string>> UploadFile(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("Aucun fichier n'a été téléchargé.");
 
+            if (file.Length > 512000)
+                return BadRequest("La taille du fichier dépasse 500KB.");
+
+            var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".jpg", ".jpeg", ".png" };
+            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+            if (!allowedExtensions.Contains(fileExtension))
+                return BadRequest("Format de fichier non supporté. Veuillez utiliser PDF, DOC, DOCX, JPG ou PNG.");
+
+            try
+            {
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+                if (!Directory.Exists(uploadsFolder))
+                    Directory.CreateDirectory(uploadsFolder);
+
+                var uniqueFileName = $"{DateTime.Now.Ticks}_{Path.GetFileName(file.FileName)}";
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(fileStream);
+                }
+
+                var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                return Ok($"{baseUrl}/uploads/{uniqueFileName}");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Une erreur est survenue lors du téléchargement du fichier: {ex.Message}");
+            }
+        }
+
+        [HttpGet("download/{fileName}")]
+        [Authorize(Roles = "MembreDirection")]
+        public IActionResult DownloadFile(string fileName)
+        {
+            try
+            {
+                fileName = Path.GetFileName(fileName);
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "uploads", fileName);
+
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return NotFound("Le fichier demandé n'existe pas.");
+                }
+
+                var contentType = GetContentType(fileName);
+                var fileBytes = System.IO.File.ReadAllBytes(filePath);
+
+                return File(fileBytes, contentType, fileName);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Une erreur est survenue lors du téléchargement du fichier: {ex.Message}");
+            }
+        }
+
+        private string GetContentType(string fileName)
+        {
+            var extension = Path.GetExtension(fileName).ToLowerInvariant();
+            return extension switch
+            {
+                ".pdf" => "application/pdf",
+                ".doc" => "application/msword",
+                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ".jpg" => "image/jpeg",
+                ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                _ => "application/octet-stream"
+            };
+        }
         private string GetAccordFormLink(int accordId)
         {
             return $"{_config["Frontend:BaseUrl"]}/accord/{accordId}/completer";

@@ -7,7 +7,7 @@ namespace StageManager.Models
     {
         public enum StatusDemandeDeStage
         {
-            EnCours,  // Statut par défaut
+            Enattente,  // Statut par défaut
             Accepte,
             Refuse
         }
@@ -22,7 +22,7 @@ namespace StageManager.Models
         public string cheminfichier { get; set; }
 
         [Required]
-        public StatusDemandeDeStage Statut { get; set; } = StatusDemandeDeStage.EnCours;
+        public StatusDemandeDeStage Statut { get; set; } = StatusDemandeDeStage.Enattente;
 
         public List<Stagiaire> Stagiaires { get; set; }
 

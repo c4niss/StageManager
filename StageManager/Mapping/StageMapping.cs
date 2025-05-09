@@ -17,6 +17,8 @@ namespace StageManager.Mapping
                 ConventionId = stage.ConventionId,
                 DepartementId = stage.DepartementId,
                 DepartementNom = stage.Departement?.Nom,
+                DomaineId = stage.DomaineId,
+                DomaineNom = stage.Domaine?.Nom,
                 EncadreurId = stage.EncadreurId,
                 EncadreurNomComplet = stage.Encadreur?.Nom,
                 Stagiaires = stage.Stagiaires?.Select(s => new StagiaireInfoDto

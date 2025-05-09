@@ -12,6 +12,6 @@ namespace StageManager.DTO.DemandeDeStageDTO
         public DateTime DateDemande { get; set; } = DateTime.Now;
         // Add MembreDirectionId to the DTO
         public int? MembreDirectionId { get; set; }
-        public DemandeDeStage.StatusDemandeDeStage Statut { get; set; } = DemandeDeStage.StatusDemandeDeStage.EnCours;
+        public DemandeDeStage.StatusDemandeDeStage Statut { get; set; } = DemandeDeStage.StatusDemandeDeStage.Enattente;
     }
 }

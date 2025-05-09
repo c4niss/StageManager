@@ -53,6 +53,14 @@ namespace StageManager.Controllers
         [HttpPost]
         public async Task<ActionResult<DepartementDto>> CreateDepartement(CreateDepartementDto createDto)
         {
+            if (string.IsNullOrEmpty(createDto.Nom))
+            {
+                return BadRequest("Le nom du département est requis.");
+            }
+            if (await _context.Departements.AnyAsync(d => d.Nom == createDto.Nom))
+            {
+                return Conflict("Un département avec ce nom existe déjà.");
+            }
             var departement = new Departement
             {
                 Nom = createDto.Nom,

@@ -60,6 +60,14 @@ namespace StageManager.Controllers
                 return BadRequest("Département non trouvé");
             }
 
+            // Vérifier si le nom du domaine existe déjà dans le même département
+            var existingDomaine = await _context.Domaines
+                .AnyAsync(d => d.Nom == createDto.Nom && d.DepartementId == createDto.DepartementId);
+            if (existingDomaine)
+            {
+                return BadRequest("Un domaine avec ce nom existe déjà dans ce département");
+            }
+
             var domaine = new Domaine
             {
                 Nom = createDto.Nom,

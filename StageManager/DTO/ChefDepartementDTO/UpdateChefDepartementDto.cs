@@ -17,9 +17,6 @@ namespace StageManager.DTO.ChefDepartementDTO
         [StringLength(20)]
         [Phone]
         public string Telephone { get; set; }
-
-        [StringLength(255)]
-        public string MotDePasse { get; set; }
         public int? DepartementId { get; set; }
         public bool? EstActif { get; set; }
     }
