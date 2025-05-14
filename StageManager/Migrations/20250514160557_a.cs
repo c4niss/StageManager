@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace StageManager.Migrations
 {
     /// <inheritdoc />
-    public partial class aaa : Migration
+    public partial class a : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -90,6 +90,7 @@ namespace StageManager.Migrations
                     DateDepot = table.Column<DateTime>(type: "datetime2", nullable: false),
                     status = table.Column<int>(type: "int", nullable: false),
                     CheminFichier = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    Commentaire = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     StageId = table.Column<int>(type: "int", nullable: false),
                     DemandeAccordId = table.Column<int>(type: "int", nullable: false),
                     MembreDirectionId = table.Column<int>(type: "int", nullable: false)
@@ -124,6 +125,7 @@ namespace StageManager.Migrations
                     Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     DiplomeObtention = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     NatureStage = table.Column<int>(type: "int", nullable: true),
+                    commentaire = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     DateCreation = table.Column<DateTime>(type: "datetime2", nullable: false),
                     conventionId = table.Column<int>(type: "int", nullable: false),
                     DateSoumissionStagiaire = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -165,6 +167,7 @@ namespace StageManager.Migrations
                     DateDemande = table.Column<DateTime>(type: "datetime2", nullable: false),
                     cheminfichier = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Statut = table.Column<int>(type: "int", nullable: false),
+                    Commentaire = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     DemandeaccordId = table.Column<int>(type: "int", nullable: true),
                     MembreDirectionId = table.Column<int>(type: "int", nullable: true),
                     MembreDirectionId1 = table.Column<int>(type: "int", nullable: true)
@@ -378,8 +381,7 @@ namespace StageManager.Migrations
                     ConventionId = table.Column<int>(type: "int", nullable: true),
                     DepartementId = table.Column<int>(type: "int", nullable: true),
                     EncadreurId = table.Column<int>(type: "int", nullable: true),
-                    DomaineId = table.Column<int>(type: "int", nullable: false),
-                    FicheEvaluationStagiaireId = table.Column<int>(type: "int", nullable: false),
+                    DomaineId = table.Column<int>(type: "int", nullable: true),
                     AvenantId = table.Column<int>(type: "int", nullable: false),
                     MemoireId = table.Column<int>(type: "int", nullable: false)
                 },
@@ -455,6 +457,7 @@ namespace StageManager.Migrations
                     EstActif = table.Column<bool>(type: "bit", nullable: false),
                     TypeUtilisateur = table.Column<string>(type: "nvarchar(21)", maxLength: 21, nullable: false),
                     ChefDepartement_DepartementId = table.Column<int>(type: "int", nullable: true),
+                    ChefDepartement_Fonction = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     Encadreur_Fonction = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     DateDemande = table.Column<DateTime>(type: "datetime2", nullable: true),
                     EstDisponible = table.Column<bool>(type: "bit", nullable: true),
@@ -643,8 +646,7 @@ namespace StageManager.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_FichesEvaluationStagiaire_StageId",
                 table: "FichesEvaluationStagiaire",
-                column: "StageId",
-                unique: true);
+                column: "StageId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_FichesEvaluationStagiaire_StagiaireId",
@@ -715,7 +717,7 @@ namespace StageManager.Migrations
                 table: "Utilisateurs",
                 column: "ChefDepartement_DepartementId",
                 unique: true,
-                filter: "[DepartementId] IS NOT NULL");
+                filter: "\"TypeUtilisateur\" = 'ChefDepartement'");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Utilisateurs_DemandeaccordId",

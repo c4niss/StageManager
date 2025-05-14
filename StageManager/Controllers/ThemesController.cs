@@ -64,6 +64,17 @@ namespace StageManager.Controllers
                     return BadRequest("Stage non trouvé");
                 }
             }
+            if (string.IsNullOrEmpty(createDto.Nom))
+            {
+                return BadRequest("Le nom du thème est requis");
+            }
+            // Vérifier si le nom du thème existe déjà
+            var existingTheme = await _context.Themes
+                .AnyAsync(t => t.Nom == createDto.Nom && t.DemandeaccordId == createDto.DemandeaccordId);
+            if (existingTheme)
+            {
+                return BadRequest("Un thème avec ce nom existe déjà pour cette demande d'accord");
+            }
 
             var theme = new Theme
             {

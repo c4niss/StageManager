@@ -54,7 +54,7 @@ namespace StageManager.Migrations
                     b.HasIndex("StagiaireId")
                         .IsUnique();
 
-                    b.ToTable("Attestations");
+                    b.ToTable("Attestations", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.Avenant", b =>
@@ -96,7 +96,7 @@ namespace StageManager.Migrations
                     b.HasIndex("StageId")
                         .IsUnique();
 
-                    b.ToTable("Avenants");
+                    b.ToTable("Avenants", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.Convention", b =>
@@ -110,6 +110,9 @@ namespace StageManager.Migrations
                     b.Property<string>("CheminFichier")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Commentaire")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("DateDepot")
                         .HasColumnType("datetime2");
@@ -136,7 +139,7 @@ namespace StageManager.Migrations
                     b.HasIndex("StageId")
                         .IsUnique();
 
-                    b.ToTable("Conventions");
+                    b.ToTable("Conventions", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.DemandeDeStage", b =>
@@ -146,6 +149,9 @@ namespace StageManager.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Commentaire")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("DateDemande")
                         .HasColumnType("datetime2");
@@ -174,7 +180,7 @@ namespace StageManager.Migrations
 
                     b.HasIndex("MembreDirectionId1");
 
-                    b.ToTable("DemandesDeStage");
+                    b.ToTable("DemandesDeStage", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.DemandeDepotMemoire", b =>
@@ -226,7 +232,7 @@ namespace StageManager.Migrations
 
                     b.HasIndex("themeId");
 
-                    b.ToTable("DemandesDepotMemoire");
+                    b.ToTable("DemandesDepotMemoire", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.Demandeaccord", b =>
@@ -314,6 +320,9 @@ namespace StageManager.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("commentaire")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("conventionId")
                         .HasColumnType("int");
 
@@ -326,7 +335,7 @@ namespace StageManager.Migrations
 
                     b.HasIndex("EncadreurId");
 
-                    b.ToTable("DemandesAccord");
+                    b.ToTable("DemandesAccord", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.Departement", b =>
@@ -347,7 +356,7 @@ namespace StageManager.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Departements");
+                    b.ToTable("Departements", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.Domaine", b =>
@@ -370,7 +379,7 @@ namespace StageManager.Migrations
 
                     b.HasIndex("DepartementId");
 
-                    b.ToTable("Domaines");
+                    b.ToTable("Domaines", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.FicheDePointage", b =>
@@ -430,7 +439,7 @@ namespace StageManager.Migrations
                     b.HasIndex("StagiaireId")
                         .IsUnique();
 
-                    b.ToTable("FichesDePointage");
+                    b.ToTable("FichesDePointage", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.FicheEvaluationEncadreur", b =>
@@ -541,6 +550,9 @@ namespace StageManager.Migrations
                     b.Property<int>("StageId")
                         .HasColumnType("int");
 
+                    b.Property<int>("StagiaireId")
+                        .HasColumnType("int");
+
                     b.Property<int>("TransmetDonneesFiables")
                         .HasColumnType("int");
 
@@ -548,10 +560,11 @@ namespace StageManager.Migrations
 
                     b.HasIndex("EncadreurId");
 
-                    b.HasIndex("StageId")
-                        .IsUnique();
+                    b.HasIndex("StageId");
 
-                    b.ToTable("FichesEvaluationEncadreur");
+                    b.HasIndex("StagiaireId");
+
+                    b.ToTable("FichesEvaluationEncadreur", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.FicheEvaluationStagiaire", b =>
@@ -698,7 +711,7 @@ namespace StageManager.Migrations
                     b.HasIndex("StagiaireId")
                         .IsUnique();
 
-                    b.ToTable("FichesEvaluationStagiaire");
+                    b.ToTable("FichesEvaluationStagiaire", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.JourPresence", b =>
@@ -730,7 +743,7 @@ namespace StageManager.Migrations
 
                     b.HasIndex("PointageMoisId");
 
-                    b.ToTable("jourPresences");
+                    b.ToTable("jourPresences", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.Memoire", b =>
@@ -768,7 +781,7 @@ namespace StageManager.Migrations
                     b.HasIndex("StageId")
                         .IsUnique();
 
-                    b.ToTable("Memoires");
+                    b.ToTable("Memoires", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.PointageMois", b =>
@@ -794,7 +807,7 @@ namespace StageManager.Migrations
 
                     b.HasIndex("FicheDePointageId");
 
-                    b.ToTable("PointageMois");
+                    b.ToTable("PointageMois", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.Stage", b =>
@@ -836,9 +849,6 @@ namespace StageManager.Migrations
                     b.Property<int>("Statut")
                         .HasColumnType("int");
 
-                    b.Property<int>("ficheevaluationencadreurId")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("DepartementId");
@@ -847,7 +857,7 @@ namespace StageManager.Migrations
 
                     b.HasIndex("EncadreurId");
 
-                    b.ToTable("Stages");
+                    b.ToTable("Stages", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.Theme", b =>
@@ -886,7 +896,7 @@ namespace StageManager.Migrations
 
                     b.HasIndex("StageId");
 
-                    b.ToTable("Themes");
+                    b.ToTable("Themes", (string)null);
                 });
 
             modelBuilder.Entity("StageManager.Models.Utilisateur", b =>
@@ -947,7 +957,7 @@ namespace StageManager.Migrations
 
                     b.HasIndex("TypeUtilisateur");
 
-                    b.ToTable("Utilisateurs");
+                    b.ToTable("Utilisateurs", (string)null);
 
                     b.HasDiscriminator<string>("TypeUtilisateur").HasValue("Utilisateur");
 
@@ -968,14 +978,22 @@ namespace StageManager.Migrations
                     b.Property<int>("DepartementId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Fonction")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.HasIndex("DepartementId")
                         .IsUnique()
                         .HasFilter("\"TypeUtilisateur\" = 'ChefDepartement'");
 
-                    b.ToTable("Utilisateurs", t =>
+                    b.ToTable("Utilisateurs", null, t =>
                         {
                             t.Property("DepartementId")
                                 .HasColumnName("ChefDepartement_DepartementId");
+
+                            t.Property("Fonction")
+                                .HasColumnName("ChefDepartement_Fonction");
                         });
 
                     b.HasDiscriminator().HasValue("ChefDepartement");
@@ -1015,7 +1033,7 @@ namespace StageManager.Migrations
 
                     b.HasIndex("DomaineId");
 
-                    b.ToTable("Utilisateurs", t =>
+                    b.ToTable("Utilisateurs", null, t =>
                         {
                             t.Property("Fonction")
                                 .HasColumnName("Encadreur_Fonction");
@@ -1271,14 +1289,22 @@ namespace StageManager.Migrations
                         .IsRequired();
 
                     b.HasOne("StageManager.Models.Stage", "Stage")
-                        .WithOne("ficheEvaluationEncadreur")
-                        .HasForeignKey("StageManager.Models.FicheEvaluationEncadreur", "StageId")
+                        .WithMany("ficheEvaluationEncadreurs")
+                        .HasForeignKey("StageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("StageManager.Models.Stagiaire", "Stagiaire")
+                        .WithMany()
+                        .HasForeignKey("StagiaireId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Encadreur");
 
                     b.Navigation("Stage");
+
+                    b.Navigation("Stagiaire");
                 });
 
             modelBuilder.Entity("StageManager.Models.FicheEvaluationStagiaire", b =>
@@ -1517,8 +1543,7 @@ namespace StageManager.Migrations
 
                     b.Navigation("Stagiaires");
 
-                    b.Navigation("ficheEvaluationEncadreur")
-                        .IsRequired();
+                    b.Navigation("ficheEvaluationEncadreurs");
 
                     b.Navigation("ficheEvaluationStagiaire");
                 });

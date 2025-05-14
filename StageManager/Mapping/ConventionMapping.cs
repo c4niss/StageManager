@@ -14,6 +14,7 @@ namespace StageManager.Mapping
                 Status = convention.status,
                 CheminFichier = convention.CheminFichier,
                 StageId = convention.StageId,
+                Commentaire = convention.Commentaire,
                 MembreDirectionId = convention.MembreDirectionId,
                 MembreDirectionNom = convention.MembreDirection?.Nom
             };

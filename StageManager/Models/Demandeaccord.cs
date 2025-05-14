@@ -78,6 +78,7 @@ namespace StageManager.Models
         public string? DiplomeObtention { get; set; }
 
         public NatureStage? NatureStage { get; set; }
+        public string? commentaire { get; set; }
 
         public DateTime DateCreation { get; set; } = DateTime.Now;
         public Convention Convention { get; set; }

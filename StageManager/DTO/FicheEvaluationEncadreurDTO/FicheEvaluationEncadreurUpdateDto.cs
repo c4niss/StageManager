@@ -74,7 +74,4 @@ public class FicheEvaluationEncadreurUpdateDto
 
     [MaxLength(500)]
     public string Observations { get; set; }
-
-    [Required]
-    public string NomPrenomStagiaireEvaluateur { get; set; }
 }

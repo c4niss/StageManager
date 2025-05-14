@@ -47,17 +47,19 @@ namespace StageManager.BackgroundService
                     _logger.LogError(ex, "Erreur lors du traitement des rappels");
                 }
 
-                // Vérification toutes les 10 secondes pour les tests
+                // Vérification toutes les secondes
                 await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
             }
         }
 
         private async Task ProcesserRappels(AppDbContext context)
         {
+            // Modifié pour inclure les demandes qui sont refusées mais n'ont pas encore reçu le rappel du jour 7
             var demandes = await context.DemandesAccord
-                .Where(d => d.Status == StatusAccord.EnCours
+                .Where(d => (d.Status == StatusAccord.EnCours ||
+                            (d.Status == StatusAccord.Refuse && !d.RappelJour7Envoye))
                          && d.DateSoumissionStagiaire.HasValue
-                         && d.ChefDepartementId != null) // Assure que le chef est assigné
+                         && d.ChefDepartementId != null)
                 .Include(d => d.ChefDepartement)
                 .Include(d => d.stagiaires)
                 .Include(d => d.DemandeDeStage)
@@ -69,38 +71,46 @@ namespace StageManager.BackgroundService
 
                 if (delai >= 60 && delai < 65 && !demande.RappelJour6Envoye)
                 {
-                    await EnvoyerRappelChefDepartement(
+                    bool emailEnvoye = await EnvoyerRappelChefDepartement(
                         demande,
                         $"Rappel: Demande n°{demande.Id} en attente",
                         $"Bonjour {demande.ChefDepartement.Prenom},\n\n" +
                         "Merci de traiter cette demande dans les plus brefs délais.\n" +
                         "Délai restant : 24h\n\nCordialement,\nLe service des stages");
 
-                    demande.RappelJour6Envoye = true;
+                    if (emailEnvoye)
+                    {
+                        demande.RappelJour6Envoye = true;
+                        _logger.LogInformation($"Rappel jour 6 marqué comme envoyé pour la demande {demande.Id}");
+                    }
                 }
                 else if (delai >= 65 && !demande.RappelJour7Envoye)
                 {
-                    await EnvoyerRappelChefDepartement(
+                    bool emailEnvoye = await EnvoyerRappelChefDepartement(
                         demande,
                         $"URGENT: Demande n°{demande.Id} expirée",
                         $"Bonjour {demande.ChefDepartement.Prenom},\n\n" +
                         "Cette demande a été automatiquement rejetée après 7 jours.\n\n" +
                         "Cordialement,\nLe service des stages");
 
-                    demande.Status = StatusAccord.Refuse;
-                    demande.RappelJour7Envoye = true;
+                    if (emailEnvoye)
+                    {
+                        demande.Status = StatusAccord.Refuse;
+                        demande.RappelJour7Envoye = true;
+                        _logger.LogInformation($"Demande {demande.Id} marquée comme refusée et rappel jour 7 envoyé");
+                    }
                 }
             }
 
             await context.SaveChangesAsync();
         }
 
-        private async Task EnvoyerRappelChefDepartement(Demandeaccord demande, string sujet, string corps)
+        private async Task<bool> EnvoyerRappelChefDepartement(Demandeaccord demande, string sujet, string corps)
         {
             if (demande.ChefDepartement?.Email == null)
             {
                 _logger.LogWarning($"Aucun chef de département assigné pour la demande {demande.Id}");
-                return;
+                return false;
             }
 
             try
@@ -127,10 +137,12 @@ namespace StageManager.BackgroundService
                 await client.DisconnectAsync(true);
 
                 _logger.LogInformation($"Email envoyé à {demande.ChefDepartement.Email}");
+                return true;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Échec d'envoi à {Email}", demande.ChefDepartement.Email);
+                return false;
             }
         }
     }

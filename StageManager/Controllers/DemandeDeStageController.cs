@@ -83,6 +83,7 @@ namespace StageManager.Controllers
             if (demande == null) return NotFound("Demande de stage non trouvée.");
             if (!string.IsNullOrEmpty(demandeDto.CheminFichier)) demande.cheminfichier = demandeDto.CheminFichier;
             demande.Statut = demandeDto.Statut;
+            demande.Commentaire = demandeDto.Commentaire;
             if (demande.Statut == DemandeDeStage.StatusDemandeDeStage.Accepte)
             {
                 var existingAccord = await _db.DemandesAccord.Include(a => a.stagiaires).FirstOrDefaultAsync(a => a.DemandeStageId == demande.Id);
@@ -125,7 +126,7 @@ namespace StageManager.Controllers
                 foreach (var stagiaire in demande.Stagiaires)
                 {
                     stagiaire.Status = StagiaireStatus.Refuse;
-                    await EnvoyerEmailAsync(stagiaire.Email, "Demande de stage refusée", $"Bonjour {stagiaire.Prenom},\n\nNous regrettons de vous informer que votre demande de stage n'a pas été retenue.\nPour plus d'informations, vous pouvez contacter le service des stages.\n\nCordialement,\nLe service des stages");
+                    await EnvoyerEmailAsync(stagiaire.Email, "Demande de stage refusée", $"Bonjour {stagiaire.Prenom},\n\nNous regrettons de vous informer que votre demande de stage n'a pas été retenue.\n{demandeDto.Commentaire}\n\nCordialement,\nLe service des stages");
                 }
             }
             await _db.SaveChangesAsync();

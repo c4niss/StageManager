@@ -9,6 +9,7 @@ namespace StageManager.DTO.DemandeDeStageDTO
         public DateTime DateDemande { get; set; }
         public string CheminFichier { get; set; }
         public DemandeDeStage.StatusDemandeDeStage Statut { get; set; }
+        public string? Commentaire { get; set; }
         public List<StagiaireDTO.StagiaireDto> Stagiaires { get; set; }
         public MembreDirectionDTO.MembreDirectionDto MembreDirection { get; set; }
     }

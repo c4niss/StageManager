@@ -22,6 +22,7 @@ namespace StageManager.Models
 
         [StringLength(255)]
         public string? CheminFichier { get; set; }
+        public string? Commentaire { get; set; }
 
         [Required]
         [ForeignKey("Stage")]

@@ -24,6 +24,7 @@ public class DemandeaccordDto
     public string? FiliereSpecialite { get; set; }
     public string? Telephone { get; set; }
     public string? Email { get; set; }
+    public string? Commentaire { get; set; }
     public string? DiplomeObtention { get; set; }
     public NatureStage? NatureStage { get; set; }
     public DateTime DateCreation { get; set; }

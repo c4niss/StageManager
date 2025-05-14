@@ -23,7 +23,7 @@ namespace StageManager.Models
 
         [Required]
         public StatusDemandeDeStage Statut { get; set; } = StatusDemandeDeStage.Enattente;
-
+        public string? Commentaire { get; set; }
         public List<Stagiaire> Stagiaires { get; set; }
 
         public int? DemandeaccordId { get; set; }

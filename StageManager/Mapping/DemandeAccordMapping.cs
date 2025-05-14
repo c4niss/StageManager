@@ -32,6 +32,7 @@ namespace StageManager.Mapping
                 FiliereSpecialite = demande.FiliereSpecialite,
                 Telephone = demande.Telephone,
                 Email = demande.Email,
+                Commentaire = demande.commentaire,
                 DiplomeObtention = demande.DiplomeObtention,
                 NatureStage = demande.NatureStage,
                 DemandeStageId = demande.DemandeStageId

@@ -15,6 +15,7 @@ namespace StageManager.Mapping
                 DateDemande = demandeDeStage.DateDemande,
                 CheminFichier = demandeDeStage.cheminfichier,
                 Statut = demandeDeStage.Statut,
+                Commentaire = demandeDeStage.Commentaire,
                 Stagiaires = demandeDeStage.Stagiaires?.Select(s => s.ToDto()).ToList() ?? new List<DTO.StagiaireDTO.StagiaireDto>(),
                 MembreDirection = demandeDeStage.MembreDirection?.ToDto() ?? new DTO.MembreDirectionDTO.MembreDirectionDto()
             };

@@ -25,9 +25,9 @@ namespace StageManager.DTO.StagiaireDTO
         [Phone]
         [StringLength(20)]
         public string Telephone { get; set; }
-        [Required]
+
         [StringLength(255)]
-        public string MotDePasse { get; set; }
+        public string? MotDePasse { get; set; }
 
         [Required]
         [StringLength(100)]

@@ -19,5 +19,6 @@ namespace StageManager.DTO.ConventionDTO
         // Informations sur le membre de direction associé
         public int? MembreDirectionId { get; set; }
         public string MembreDirectionNom { get; set; }
+        public string? Commentaire { get; internal set; }
     }
 }

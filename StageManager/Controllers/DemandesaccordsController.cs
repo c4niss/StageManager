@@ -200,6 +200,7 @@ namespace StageManager.Controllers
             if (demandeaccord.DateFin <= demandeaccord.DateDebut) return BadRequest("La date de fin doit être postérieure à la date de début.");
             var oldStatus = demandeaccord.Status;
             demandeaccord.Status = updateDto.Status;
+            demandeaccord.commentaire = updateDto.Commentaire;
             var demandedestage = await _context.DemandesDeStage
                 .Include(d => d.MembreDirection)
                 .FirstOrDefaultAsync(d => d.Id == demandeaccord.DemandeStageId);
@@ -270,7 +271,7 @@ namespace StageManager.Controllers
                             "Demande d'accord de stage refusée",
                             $"Bonjour {stagiaire.Prenom},\n\n" +
                             "Nous regrettons de vous informer que votre demande d'accord de stage n'a pas été retenue.\n" +
-                            "Pour plus d'informations, vous pouvez contacter le service des stages.\n\n" +
+                            $"{updateDto.Commentaire}" +
                             "Cordialement,\nLe service des stages");
                     }
                 }

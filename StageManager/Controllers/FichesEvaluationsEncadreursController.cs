@@ -177,8 +177,6 @@ namespace StageManager.Controllers
             ficheEvaluation.DemontreInteretRecherche = ficheEvaluationDto.DemontreInteretRecherche;
 
             ficheEvaluation.Observations = ficheEvaluationDto.Observations;
-            ficheEvaluation.NomPrenomStagiaireEvaluateur = ficheEvaluationDto.NomPrenomStagiaireEvaluateur;
-
             try
             {
                 await _context.SaveChangesAsync();

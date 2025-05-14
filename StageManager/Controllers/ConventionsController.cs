@@ -104,7 +104,7 @@ namespace StageManager.Controllers
             // Mise à jour des propriétés de base
             convention.CheminFichier = updateConventionDto.CheminFichier;
             convention.status = updateConventionDto.Status;
-
+            convention.Commentaire = updateConventionDto.Commentaire;
             // Logique spécifique si le statut a changé à Accepté
             if (oldStatus != Statusconvention.Accepte && convention.status == Statusconvention.Accepte)
             {
@@ -160,8 +160,22 @@ namespace StageManager.Controllers
                                 StagiaireId = stagiaire.Id,
                                 StageId = convention.Stage.Id
                             };
-
                             _context.FichesEvaluationStagiaire.Add(ficheEvaluationStagiaire);
+                            var ficheEvaluationEncadreur = new FicheEvaluationEncadreur
+                            {
+                                DateCreation = DateTime.Now,
+                                NomPrenomEncadreur = $"{convention.DemandeAccord.Encadreur?.Nom} {convention.DemandeAccord.Encadreur?.Prenom}",
+                                FonctionEncadreur = convention.DemandeAccord.Encadreur?.Fonction ?? "Non spécifié",
+                                DateDebutStage = convention.Stage.DateDebut,
+                                DateFinStage = convention.Stage.DateFin,
+                                Observations = "",
+                                NomPrenomStagiaireEvaluateur = $"{stagiaire.Nom} {stagiaire.Prenom}",
+                                DateEvaluation = DateTime.Now,
+                                EncadreurId = convention.Stage.EncadreurId,
+                                StagiaireId = stagiaire.Id,
+                                StageId = convention.Stage.Id
+                            };
+                            _context.FichesEvaluationEncadreur.Add(ficheEvaluationEncadreur);
 
                             // Envoyer email de confirmation
                             string sujet = "Confirmation du début de votre stage";
@@ -174,23 +188,7 @@ namespace StageManager.Controllers
                             await EnvoyerEmailAsync(stagiaire.Email, sujet, corps);
                         }
                     }
-
-                    // Créer une fiche d'évaluation pour l'encadreur
-                    var ficheEvaluationEncadreur = new FicheEvaluationEncadreur
-                    {
-                        DateCreation = DateTime.Now,
-                        NomPrenomEncadreur = $"{convention.DemandeAccord.Encadreur?.Nom} {convention.DemandeAccord.Encadreur?.Prenom}",
-                        FonctionEncadreur = convention.DemandeAccord.Encadreur?.Fonction ?? "Non spécifié",
-                        DateDebutStage = convention.Stage.DateDebut,
-                        DateFinStage = convention.Stage.DateFin,
-                        Observations = "",
-                        NomPrenomStagiaireEvaluateur = "",
-                        DateEvaluation = DateTime.Now,
-                        EncadreurId = convention.Stage.EncadreurId,
-                        StageId = convention.Stage.Id
-                    };
-
-                    _context.FichesEvaluationEncadreur.Add(ficheEvaluationEncadreur);
+                    
                 }
 
                 // Mettre à jour le statut du stage s'il existe

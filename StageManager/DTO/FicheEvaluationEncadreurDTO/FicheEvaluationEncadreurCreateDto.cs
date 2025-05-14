@@ -89,7 +89,8 @@ public class FicheEvaluationEncadreurCreateDto
 
     [Required]
     public string NomPrenomStagiaireEvaluateur { get; set; }
-
+    [Required]
+    public string StagiaireId { get; set; }
     [Required]
     public int EncadreurId { get; set; }
 

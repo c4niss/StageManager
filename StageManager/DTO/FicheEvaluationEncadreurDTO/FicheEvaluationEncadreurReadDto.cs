@@ -50,6 +50,7 @@ public class FicheEvaluationEncadreurReadDto
     public DateTime DateEvaluation { get; set; }
 
     // Informations liées
+    public StagiaireMinimalDto Stagiaire { get; set; }
     public EncadreurMinimalDto Encadreur { get; set; }
     public StageMinimalDto Stage { get; set; }
 }

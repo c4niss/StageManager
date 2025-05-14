@@ -9,6 +9,7 @@ namespace StageManager.DTO.ConventionDTO
         [StringLength(255)]
         public string CheminFichier { get; set; }
         public Convention.Statusconvention Status { get; set; }
+        public string? Commentaire { get; set; }
 
     }
 }

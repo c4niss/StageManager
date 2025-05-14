@@ -7,5 +7,6 @@ namespace StageManager.DTO.DemandeDeStageDTO
     {
         public string CheminFichier { get; set; }
         public DemandeDeStage.StatusDemandeDeStage Statut { get; set; }
+        public string? Commentaire { get; set; }
     }
 }

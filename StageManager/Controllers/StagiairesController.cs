@@ -10,6 +10,11 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using TestRestApi.Data;
+using MailKit.Security;
+using MimeKit;
+using MimeKit.Text;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace StageManager.Controllers
 {
@@ -25,7 +30,6 @@ namespace StageManager.Controllers
             _db = db;
             _configuration = configuration;
         }
-
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -54,6 +58,7 @@ namespace StageManager.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<StagiaireDto>> CreateStagiaire([FromBody] StagiaireCreateDto stagiaireDto)
@@ -62,18 +67,20 @@ namespace StageManager.Controllers
             {
                 return BadRequest(ModelState);
             }
+
             var existingusername = await _db.Utilisateurs
                 .FirstOrDefaultAsync(u => u.Username == stagiaireDto.Username);
             if (existingusername != null)
             {
                 return BadRequest("Le nom d'utilisateur existe déjà.");
             }
-            // Vérifier si l'email existe déjà
+
             if (await _db.Stagiaires.AnyAsync(s => s.Email == stagiaireDto.Email))
             {
                 return BadRequest($"Un stagiaire avec l'email {stagiaireDto.Email} existe déjà.");
             }
 
+            string generatedPassword = GenerateRandomPassword(8);
             var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<Stagiaire>();
 
             var stagiaire = new Stagiaire
@@ -82,9 +89,9 @@ namespace StageManager.Controllers
                 Prenom = stagiaireDto.Prenom,
                 Email = stagiaireDto.Email,
                 Telephone = stagiaireDto.Telephone,
-                MotDePasse = passwordHasher.HashPassword(null, stagiaireDto.MotDePasse),
+                MotDePasse = passwordHasher.HashPassword(null, generatedPassword),
                 Universite = stagiaireDto.Universite,
-                EstActif = false,
+                EstActif = true,
                 Username = stagiaireDto.Username,
                 Specialite = stagiaireDto.Specialite,
                 Status = StagiaireStatus.EnCour,
@@ -95,11 +102,56 @@ namespace StageManager.Controllers
             _db.Stagiaires.Add(stagiaire);
             await _db.SaveChangesAsync();
 
+            await EnvoyerEmailAsync(
+                stagiaire.Email,
+                "Vos informations de connexion",
+                $"Bonjour {stagiaire.Prenom},\n\n" +
+                $"Votre compte a été créé avec succès.\n\n" +
+                $"Nom d'utilisateur: {stagiaire.Username}\n" +
+                $"Mot de passe: {generatedPassword}\n\n" +
+                $"Veuillez changer votre mot de passe après votre première connexion.\n\n" +
+                $"Cordialement,\nLe service des stages"
+            );
+
             return CreatedAtAction(nameof(GetStagiaire), new { id = stagiaire.Id }, stagiaire.ToDto());
         }
 
+        private string GenerateRandomPassword(int length)
+        {
+            const string validChars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz0123456789";
+            StringBuilder res = new StringBuilder();
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                byte[] uintBuffer = new byte[sizeof(uint)];
+
+                while (length-- > 0)
+                {
+                    rng.GetBytes(uintBuffer);
+                    uint num = BitConverter.ToUInt32(uintBuffer, 0);
+                    res.Append(validChars[(int)(num % (uint)validChars.Length)]);
+                }
+            }
+
+            return res.ToString();
+        }
+
+        private async Task EnvoyerEmailAsync(string destinataire, string sujet, string corps)
+        {
+            var email = new MimeMessage();
+            email.From.Add(new MailboxAddress("Service des Stages", _configuration["Email:From"]));
+            email.To.Add(new MailboxAddress("", destinataire));
+            email.Subject = sujet;
+            email.Body = new TextPart(TextFormat.Plain) { Text = corps };
+
+            using var client = new MailKit.Net.Smtp.SmtpClient();
+            await client.ConnectAsync(_configuration["Email:Host"], int.Parse(_configuration["Email:Port"]), SecureSocketOptions.StartTls);
+            await client.AuthenticateAsync(_configuration["Email:Username"], _configuration["Email:Password"]);
+            await client.SendAsync(email);
+            await client.DisconnectAsync(true);
+        }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -116,7 +168,6 @@ namespace StageManager.Controllers
                 return NotFound($"Stagiaire avec l'ID {id} non trouvé.");
             }
 
-            // Vérifier si l'email mis à jour existe déjà pour un autre utilisateur
             if (!string.IsNullOrEmpty(stagiaireDto.Email) &&
                 stagiaireDto.Email != stagiaire.Email &&
                 await _db.Stagiaires.AnyAsync(s => s.Email == stagiaireDto.Email))
@@ -156,8 +207,8 @@ namespace StageManager.Controllers
             }
         }
 
-
         [HttpPut("{id}/status")]
+        [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -180,8 +231,8 @@ namespace StageManager.Controllers
             return Ok(stagiaire.ToDto());
         }
 
-
         [HttpPatch("{id}")]
+        [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -217,8 +268,8 @@ namespace StageManager.Controllers
             }
         }
 
-
         [HttpDelete("{id}")]
+        [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -234,7 +285,6 @@ namespace StageManager.Controllers
                 return NotFound($"Stagiaire avec l'ID {id} non trouvé.");
             }
 
-            // Vérifier si le stagiaire est associé à un stage actif
             if (stagiaire.Stage != null &&
                 (stagiaire.Stage.Statut == StatutStage.EnAttente ||
                  stagiaire.Stage.Statut == StatutStage.EnCours ||
@@ -255,7 +305,6 @@ namespace StageManager.Controllers
                     $"Une erreur s'est produite lors de la suppression du stagiaire: {ex.Message}");
             }
         }
-
 
         [HttpGet("search")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -287,9 +336,6 @@ namespace StageManager.Controllers
             return Ok(stagiaires.Select(s => s.ToDto()));
         }
 
-        /// <summary>
-        /// Récupère les stagiaires par statut
-        /// </summary>
         [HttpGet("status/{status}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<IEnumerable<StagiaireDto>>> GetStagiairesByStatus(StagiaireStatus status)
@@ -306,7 +352,6 @@ namespace StageManager.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<IEnumerable<StagiaireDto>>> GetStagiairesByEncadreur(int encadreurId)
         {
-            // Vérifier que l'encadreur existe
             if (!await _db.Encadreurs.AnyAsync(e => e.Id == encadreurId))
             {
                 return NotFound($"Encadreur avec l'ID {encadreurId} non trouvé.");
@@ -318,11 +363,11 @@ namespace StageManager.Controllers
 
             return Ok(stagiaires.Select(s => s.ToDto()));
         }
-        // GET: api/Stagiaires/current
+
         [HttpGet("current")]
+        [Authorize(Roles = "Stagiaire")]
         public async Task<ActionResult<StagiaireDto>> GetCurrentStagiaire()
         {
-            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
@@ -335,14 +380,13 @@ namespace StageManager.Controllers
             return stagiaire.ToDto();
         }
 
-        // PUT: api/Stagiaires/update-password
         [HttpPut("update-password")]
+        [Authorize(Roles = "Stagiaire")]
         public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordModel model)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
@@ -352,26 +396,24 @@ namespace StageManager.Controllers
             if (stagiaire == null)
                 return NotFound("Stagiaire non trouvé");
 
-            // Vérifier que le mot de passe actuel est correct
             var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<Stagiaire>();
             var verificationResult = passwordHasher.VerifyHashedPassword(stagiaire, stagiaire.MotDePasse, model.CurrentPassword);
             if (verificationResult == Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed)
                 return BadRequest("Le mot de passe actuel est incorrect");
 
-            // Mettre à jour le mot de passe
             stagiaire.MotDePasse = passwordHasher.HashPassword(stagiaire, model.NewPassword);
             await _db.SaveChangesAsync();
 
             return Ok(new { message = "Mot de passe mis à jour avec succès" });
         }
-        // PUT: api/Stagiaires/update-stagiaire-info
+
         [HttpPut("update-stagiaire-info")]
+        [Authorize(Roles = "Stagiaire")]
         public async Task<IActionResult> UpdateStagiaireInfo([FromBody] UpdateStagiaireInfoDto updateDto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
@@ -381,7 +423,6 @@ namespace StageManager.Controllers
             if (stagiaire == null)
                 return NotFound("Stagiaire non trouvé");
 
-            // Mettre à jour les propriétés si elles sont fournies
             if (!string.IsNullOrEmpty(updateDto.Email))
                 stagiaire.Email = updateDto.Email;
 
@@ -401,7 +442,6 @@ namespace StageManager.Controllers
                     throw;
             }
         }
-
 
         [Authorize]
         [HttpGet("authenticated")]

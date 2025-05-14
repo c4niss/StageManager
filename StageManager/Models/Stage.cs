@@ -48,8 +48,7 @@ namespace StageManager.Models
         // Autres propriétés
         public List<Stagiaire> Stagiaires { get; set; }
         public List<FicheEvaluationStagiaire> ficheEvaluationStagiaire { get; set; }
-        public int ficheevaluationencadreurId { get; set; }
-        public FicheEvaluationEncadreur ficheEvaluationEncadreur { get; set; }
+        public List<FicheEvaluationEncadreur> ficheEvaluationEncadreurs { get; set; }
         public int AvenantId { get; set; }
         public int MemoireId { get; set; }
         public Avenant Avenant { get; set; }
