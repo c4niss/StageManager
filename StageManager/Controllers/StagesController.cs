@@ -102,7 +102,7 @@ namespace StageManager.Controllers
                 return BadRequest("L'encadreur spécifié n'existe pas.");
             }
 
-            if (!encadreur.EstDisponible || encadreur.NbrStagiaires >= encadreur.StagiaireMax)
+            if (!encadreur.EstDisponible)
             {
                 return BadRequest("L'encadreur n'est pas disponible ou a atteint son quota maximum de stagiaires.");
             }
@@ -148,11 +148,6 @@ namespace StageManager.Controllers
 
                 // Mettre à jour le nombre de stagiaires pour l'encadreur
                 encadreur.NbrStagiaires += stagiaires.Count;
-                if (encadreur.NbrStagiaires >= encadreur.StagiaireMax)
-                {
-                    encadreur.EstDisponible = false;
-                }
-
                 await _context.SaveChangesAsync();
             }
 
@@ -218,17 +213,10 @@ namespace StageManager.Controllers
                 if (oldEncadreur != null)
                 {
                     oldEncadreur.NbrStagiaires -= stagiaireCount;
-                    if (oldEncadreur.NbrStagiaires < oldEncadreur.StagiaireMax)
-                    {
-                        oldEncadreur.EstDisponible = true;
-                    }
                 }
 
                 newEncadreur.NbrStagiaires += stagiaireCount;
-                if (newEncadreur.NbrStagiaires >= newEncadreur.StagiaireMax)
-                {
-                    newEncadreur.EstDisponible = false;
-                }
+
 
                 stage.EncadreurId = dto.EncadreurId.Value;
             }
@@ -290,10 +278,7 @@ namespace StageManager.Controllers
                 {
                     var stagiaireCount = await _context.Stagiaires.CountAsync(s => s.StageId == id);
                     encadreur.NbrStagiaires -= stagiaireCount;
-                    if (encadreur.NbrStagiaires < encadreur.StagiaireMax)
-                    {
-                        encadreur.EstDisponible = true;
-                    }
+
                 }
             }
 
@@ -329,10 +314,6 @@ namespace StageManager.Controllers
             {
                 var stagiaireCount = stage.Stagiaires?.Count ?? 0;
                 encadreur.NbrStagiaires -= stagiaireCount;
-                if (encadreur.NbrStagiaires < encadreur.StagiaireMax)
-                {
-                    encadreur.EstDisponible = true;
-                }
             }
 
             _context.Stages.Remove(stage);

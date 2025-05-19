@@ -12,7 +12,7 @@ using TestRestApi.Data;
 namespace StageManager.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250514160557_a")]
+    [Migration("20250514193655_a")]
     partial class a
     {
         /// <inheritdoc />
@@ -553,6 +553,9 @@ namespace StageManager.Migrations
                     b.Property<int>("StageId")
                         .HasColumnType("int");
 
+                    b.Property<int>("StagiaireId")
+                        .HasColumnType("int");
+
                     b.Property<int>("TransmetDonneesFiables")
                         .HasColumnType("int");
 
@@ -561,6 +564,8 @@ namespace StageManager.Migrations
                     b.HasIndex("EncadreurId");
 
                     b.HasIndex("StageId");
+
+                    b.HasIndex("StagiaireId");
 
                     b.ToTable("FichesEvaluationEncadreur");
                 });
@@ -976,11 +981,6 @@ namespace StageManager.Migrations
                     b.Property<int>("DepartementId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Fonction")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.HasIndex("DepartementId")
                         .IsUnique()
                         .HasFilter("\"TypeUtilisateur\" = 'ChefDepartement'");
@@ -989,9 +989,6 @@ namespace StageManager.Migrations
                         {
                             t.Property("DepartementId")
                                 .HasColumnName("ChefDepartement_DepartementId");
-
-                            t.Property("Fonction")
-                                .HasColumnName("ChefDepartement_Fonction");
                         });
 
                     b.HasDiscriminator().HasValue("ChefDepartement");
@@ -1292,9 +1289,17 @@ namespace StageManager.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("StageManager.Models.Stagiaire", "Stagiaire")
+                        .WithMany()
+                        .HasForeignKey("StagiaireId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Encadreur");
 
                     b.Navigation("Stage");
+
+                    b.Navigation("Stagiaire");
                 });
 
             modelBuilder.Entity("StageManager.Models.FicheEvaluationStagiaire", b =>

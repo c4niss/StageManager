@@ -219,7 +219,7 @@ namespace StageManager.Controllers
                         convention = new Convention
                         {
                             DemandeAccordId = demandeaccord.Id,
-                            status = Convention.Statusconvention.EnCours,
+                            status = Convention.Statusconvention.EnAttente,
                             DemandeAccord = demandeaccord,
                             MembreDirectionId = membreDirectionId.Value
                         };
@@ -241,7 +241,6 @@ namespace StageManager.Controllers
                             stage.DateFin = demandeaccord.DateFin ?? stage.DateFin;
                             stage.DepartementId = demandeaccord.Theme?.DepartementId ?? stage.DepartementId;
                             stage.DomaineId = demandeaccord.Theme?.DomaineId ?? stage.DomaineId;
-                            stage.Statut = StatutStage.EnCours;
                             stage.EncadreurId = demandeaccord.EncadreurId ?? stage.EncadreurId;
                             stage.ConventionId = convention.Id;
                             convention.StageId = stageId;

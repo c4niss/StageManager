@@ -12,7 +12,7 @@ using TestRestApi.Data;
 namespace StageManager.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250514162517_aa")]
+    [Migration("20250514200515_aa")]
     partial class aa
     {
         /// <inheritdoc />
@@ -981,11 +981,6 @@ namespace StageManager.Migrations
                     b.Property<int>("DepartementId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Fonction")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.HasIndex("DepartementId")
                         .IsUnique()
                         .HasFilter("\"TypeUtilisateur\" = 'ChefDepartement'");
@@ -994,9 +989,6 @@ namespace StageManager.Migrations
                         {
                             t.Property("DepartementId")
                                 .HasColumnName("ChefDepartement_DepartementId");
-
-                            t.Property("Fonction")
-                                .HasColumnName("ChefDepartement_Fonction");
                         });
 
                     b.HasDiscriminator().HasValue("ChefDepartement");
@@ -1027,9 +1019,6 @@ namespace StageManager.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("NbrStagiaires")
-                        .HasColumnType("int");
-
-                    b.Property<int>("StagiaireMax")
                         .HasColumnType("int");
 
                     b.HasIndex("DepartementId");

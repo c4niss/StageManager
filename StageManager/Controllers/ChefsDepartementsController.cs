@@ -7,6 +7,12 @@ using Microsoft.AspNetCore.Identity;
 using TestRestApi.Data;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using MailKit.Security;
+using MimeKit;
+using MimeKit.Text;
+using System.Transactions;
 
 namespace StageManager.Controllers
 {
@@ -15,13 +21,16 @@ namespace StageManager.Controllers
     public class ChefDepartementsController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<ChefDepartementsController> _logger;
 
-        public ChefDepartementsController(AppDbContext context)
+        public ChefDepartementsController(AppDbContext context, IConfiguration configuration, ILogger<ChefDepartementsController> logger)
         {
             _context = context;
+            _configuration = configuration;
+            _logger = logger;
         }
 
-        // GET: api/ChefDepartements
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ChefDepartementDto>>> GetChefDepartements()
         {
@@ -32,7 +41,6 @@ namespace StageManager.Controllers
             return Ok(chefs.Select(c => c.ToDto()));
         }
 
-        // GET: api/ChefDepartements/5
         [HttpGet("{id}")]
         public async Task<ActionResult<ChefDepartementDto>> GetChefDepartement(int id)
         {
@@ -48,11 +56,10 @@ namespace StageManager.Controllers
             return Ok(chef.ToDto());
         }
 
-        // POST: api/ChefDepartements
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<ActionResult<ChefDepartementDto>> CreateChefDepartement(CreateChefDepartementDto createDto)
         {
-            // Validation explicite que DepartementId existe et est valide
             if (createDto.DepartementId <= 0)
             {
                 return BadRequest("Un département valide est requis pour créer un chef de département");
@@ -64,9 +71,9 @@ namespace StageManager.Controllers
                 return BadRequest("Département non trouvé");
             }
 
-            // Le reste du code reste inchangé
+            string generatedPassword = GenerateRandomPassword(8);
             var passwordHasher = new PasswordHasher<ChefDepartement>();
-            string hashedPassword = passwordHasher.HashPassword(null, createDto.MotDePasse);
+            string hashedPassword = passwordHasher.HashPassword(null, generatedPassword);
 
             var chefDepartement = new ChefDepartement
             {
@@ -77,30 +84,96 @@ namespace StageManager.Controllers
                 Telephone = createDto.Telephone,
                 MotDePasse = hashedPassword,
                 DepartementId = createDto.DepartementId,
-                EstActif = false,
+                EstActif = true,
                 Role = UserRoles.ChefDepartement
             };
 
-            _context.ChefDepartements.Add(chefDepartement);
-            await _context.SaveChangesAsync();
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    _context.ChefDepartements.Add(chefDepartement);
+                    await _context.SaveChangesAsync();
 
-            // Utiliser une requête SQL directe pour mettre à jour explicitement le DepartementId
-            await _context.Database.ExecuteSqlRawAsync(
-                "UPDATE Utilisateurs SET DepartementId = {0} WHERE Id = {1} AND TypeUtilisateur = 'ChefDepartement'",
-                createDto.DepartementId, chefDepartement.Id);
+                    await _context.Database.ExecuteSqlRawAsync(
+                        "UPDATE Utilisateurs SET DepartementId = {0} WHERE Id = {1} AND TypeUtilisateur = 'ChefDepartement'",
+                        createDto.DepartementId, chefDepartement.Id);
 
-            // Mettre à jour le département
-            departement.ChefDepartementId = chefDepartement.Id;
-            await _context.SaveChangesAsync();
+                    departement.ChefDepartementId = chefDepartement.Id;
+                    await _context.SaveChangesAsync();
 
-            // Recharger l'entité pour s'assurer que nous avons les dernières données
-            await _context.Entry(chefDepartement).ReloadAsync();
+                    // Envoyer l'email avant de valider la transaction
+                    await EnvoyerEmailAsync(
+                        chefDepartement.Email,
+                        "Vos informations de connexion",
+                        $"Bonjour {chefDepartement.Prenom},\n\n" +
+                        $"Votre compte a été créé avec succès.\n\n" +
+                        $"Nom d'utilisateur: {chefDepartement.Username}\n" +
+                        $"Mot de passe: {generatedPassword}\n\n" +
+                        $"Veuillez changer votre mot de passe après votre première connexion.\n\n" +
+                        $"Cordialement,\nLe service des stages"
+                    );
 
-            return CreatedAtAction(nameof(GetChefDepartement), new { id = chefDepartement.Id }, chefDepartement.ToDto());
+                    // Si l'envoi d'email réussit, on valide la transaction
+                    await transaction.CommitAsync();
+                    _logger.LogInformation("Chef de département créé avec succès: {Id}, Email envoyé à: {Email}", chefDepartement.Id, chefDepartement.Email);
+
+                    await _context.Entry(chefDepartement).ReloadAsync();
+                    return CreatedAtAction(nameof(GetChefDepartement), new { id = chefDepartement.Id }, chefDepartement.ToDto());
+                }
+                catch (Exception ex)
+                {
+                    // En cas d'erreur (y compris lors de l'envoi d'email), on annule la transaction
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Erreur lors de la création du chef de département ou de l'envoi d'email: {Message}", ex.Message);
+                    return StatusCode(500, "Une erreur est survenue lors de la création du compte ou de l'envoi de l'email: " + ex.Message);
+                }
+            }
         }
 
+        private string GenerateRandomPassword(int length)
+        {
+            const string validChars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz0123456789";
+            StringBuilder res = new StringBuilder();
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                byte[] uintBuffer = new byte[sizeof(uint)];
 
-        // PUT: api/ChefDepartements/5
+                while (length-- > 0)
+                {
+                    rng.GetBytes(uintBuffer);
+                    uint num = BitConverter.ToUInt32(uintBuffer, 0);
+                    res.Append(validChars[(int)(num % (uint)validChars.Length)]);
+                }
+            }
+
+            return res.ToString();
+        }
+
+        private async Task EnvoyerEmailAsync(string destinataire, string sujet, string corps)
+        {
+            try
+            {
+                var email = new MimeMessage();
+                email.From.Add(new MailboxAddress("Service des Stages", _configuration["Email:From"]));
+                email.To.Add(new MailboxAddress("", destinataire));
+                email.Subject = sujet;
+                email.Body = new TextPart(TextFormat.Plain) { Text = corps };
+
+                using var client = new MailKit.Net.Smtp.SmtpClient();
+                await client.ConnectAsync(_configuration["Email:Host"], int.Parse(_configuration["Email:Port"]), SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(_configuration["Email:Username"], _configuration["Email:Password"]);
+                await client.SendAsync(email);
+                await client.DisconnectAsync(true);
+                _logger.LogInformation("Email envoyé avec succès à: {Email}", destinataire);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erreur lors de l'envoi de l'email à {Email}: {Message}", destinataire, ex.Message);
+                throw new Exception($"Échec de l'envoi de l'email: {ex.Message}", ex);
+            }
+        }
+
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> UpdateChefDepartement(int id, UpdateChefDepartementDto updateDto)
@@ -141,7 +214,6 @@ namespace StageManager.Controllers
             return NoContent();
         }
 
-        // DELETE: api/ChefDepartements/5
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteChefDepartement(int id)
@@ -152,12 +224,10 @@ namespace StageManager.Controllers
                 return NotFound();
             }
 
-            // Trouver tous les départements qui ont ce chef comme ChefDepartementId
             var departements = await _context.Departements
                 .Where(d => d.ChefDepartementId == id)
                 .ToListAsync();
 
-            // Réinitialiser le ChefDepartementId pour ces départements
             foreach (var departement in departements)
             {
                 departement.ChefDepartementId = null;
@@ -168,12 +238,11 @@ namespace StageManager.Controllers
 
             return NoContent();
         }
-        // GET: api/ChefDepartements/current
+
         [HttpGet("current")]
         [Authorize(Roles = "ChefDepartement")]
         public async Task<ActionResult<ChefDepartementDto>> GetCurrentChefDepartement()
         {
-            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
@@ -189,7 +258,6 @@ namespace StageManager.Controllers
             return chefDepartement.ToDto();
         }
 
-        // PUT: api/ChefDepartements/update-password
         [HttpPut("update-password")]
         [Authorize(Roles = "ChefDepartement")]
         public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordModel model)
@@ -197,7 +265,6 @@ namespace StageManager.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
@@ -207,19 +274,17 @@ namespace StageManager.Controllers
             if (chefDepartement == null)
                 return NotFound("Chef de département non trouvé");
 
-            // Vérifier que le mot de passe actuel est correct
             var passwordHasher = new PasswordHasher<ChefDepartement>();
             var verificationResult = passwordHasher.VerifyHashedPassword(chefDepartement, chefDepartement.MotDePasse, model.CurrentPassword);
             if (verificationResult == PasswordVerificationResult.Failed)
                 return BadRequest("Le mot de passe actuel est incorrect");
 
-            // Mettre à jour le mot de passe
             chefDepartement.MotDePasse = passwordHasher.HashPassword(chefDepartement, model.NewPassword);
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Mot de passe mis à jour avec succès" });
         }
-        // PUT: api/ChefDepartements/update-profile
+
         [HttpPut("update-profile")]
         [Authorize(Roles = "ChefDepartement")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto updateDto)
@@ -227,7 +292,6 @@ namespace StageManager.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
@@ -237,7 +301,6 @@ namespace StageManager.Controllers
             if (chefDepartement == null)
                 return NotFound("Chef de département non trouvé");
 
-            // Mettre à jour uniquement les champs autorisés (email et téléphone)
             if (updateDto.Email != null)
                 chefDepartement.Email = updateDto.Email;
             if (updateDto.Telephone != null)

@@ -9,6 +9,7 @@ public class FicheEvaluationEncadreurReadDto
     public DateTime DateDebutStage { get; set; }
     public DateTime DateFinStage { get; set; }
     public int StageId { get; set; }
+    public bool EstValide { get; set; }
 
     // Catégorie 1: Planification du travail
     public NiveauEvaluationEncadreur FixeObjectifsClairs { get; set; }

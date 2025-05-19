@@ -66,7 +66,6 @@ namespace StageManager.Controllers
                 TotalStagiaires = totalStagiaires,
                 StagiairesActifs = stagiairesActifs,
                 Stages = stageStats,
-                MaxStagiaires = encadreur.StagiaireMax,
                 EstDisponible = encadreur.EstDisponible
             };
         }

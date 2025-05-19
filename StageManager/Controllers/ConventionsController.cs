@@ -158,6 +158,7 @@ namespace StageManager.Controllers
                                 DateEvaluation = DateTime.Now,
                                 EncadreurId = convention.Stage.EncadreurId,
                                 StagiaireId = stagiaire.Id,
+                                EstValide = false,
                                 StageId = convention.Stage.Id
                             };
                             _context.FichesEvaluationStagiaire.Add(ficheEvaluationStagiaire);
@@ -173,6 +174,7 @@ namespace StageManager.Controllers
                                 DateEvaluation = DateTime.Now,
                                 EncadreurId = convention.Stage.EncadreurId,
                                 StagiaireId = stagiaire.Id,
+                                EstValide = false,
                                 StageId = convention.Stage.Id
                             };
                             _context.FichesEvaluationEncadreur.Add(ficheEvaluationEncadreur);
@@ -188,7 +190,7 @@ namespace StageManager.Controllers
                             await EnvoyerEmailAsync(stagiaire.Email, sujet, corps);
                         }
                     }
-                    
+
                 }
 
                 // Mettre à jour le statut du stage s'il existe

@@ -30,8 +30,6 @@
 
         public bool EstDisponible { get; set; }
         public int NbrStagiaires { get; set; }
-        public int StagiaireMax { get; set; }
-
         // Références aux autres entités
         public int? DepartementId { get; set; }
         public string DepartementNom { get; set; }

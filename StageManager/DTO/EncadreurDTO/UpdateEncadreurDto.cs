@@ -25,8 +25,6 @@ namespace StageManager.DTO.EncadreurDTO
 
 
         public bool? EstDisponible { get; set; }
-        public int? StagiaireMax { get; set; }
-
         public int? DepartementId { get; set; }
         public int? DomaineId { get; set; }
         public bool? EstActif { get; set; }

@@ -195,7 +195,35 @@ namespace StageManager.Controllers
 
             return NoContent();
         }
+        // POST: api/FicheEvaluationEncadreur/{id}/Validate
+        [HttpPost("{id}/Validate")]
+        public async Task<IActionResult> ValidateFicheEvaluationEncadreur(int id, FicheEvaluationEncadreurValidationDto validationDto)
+        {
+            var ficheEvaluation = await _context.FichesEvaluationEncadreur.FindAsync(id);
+            if (ficheEvaluation == null)
+            {
+                return NotFound();
+            }
+            ficheEvaluation.EstValide = validationDto.EstValide;
 
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!FicheEvaluationEncadreurExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
         // DELETE: api/FicheEvaluationEncadreur/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteFicheEvaluationEncadreur(int id)

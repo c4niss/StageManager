@@ -6,8 +6,8 @@ namespace StageManager.Models
     public enum NiveauEvaluationEncadreur
     {
         Insuffisant = 1,
-        Moyen = 2,  
-        Bon = 3,        
+        Moyen = 2,
+        Bon = 3,
         Excellent = 4
     }
 
@@ -17,6 +17,8 @@ namespace StageManager.Models
         public int Id { get; set; }
         [Required]
         public DateTime DateCreation { get; set; } = DateTime.Now;
+
+        public bool EstValide { get; set; }
 
         // Identification de l'encadreur
         [Required]

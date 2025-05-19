@@ -288,6 +288,7 @@ namespace StageManager.Migrations
                     NomPrenomStagiaireEvaluateur = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     DateEvaluation = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EncadreurId = table.Column<int>(type: "int", nullable: false),
+                    StagiaireId = table.Column<int>(type: "int", nullable: false),
                     StageId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -457,7 +458,6 @@ namespace StageManager.Migrations
                     EstActif = table.Column<bool>(type: "bit", nullable: false),
                     TypeUtilisateur = table.Column<string>(type: "nvarchar(21)", maxLength: 21, nullable: false),
                     ChefDepartement_DepartementId = table.Column<int>(type: "int", nullable: true),
-                    ChefDepartement_Fonction = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     Encadreur_Fonction = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     DateDemande = table.Column<DateTime>(type: "datetime2", nullable: true),
                     EstDisponible = table.Column<bool>(type: "bit", nullable: true),
@@ -637,6 +637,11 @@ namespace StageManager.Migrations
                 name: "IX_FichesEvaluationEncadreur_StageId",
                 table: "FichesEvaluationEncadreur",
                 column: "StageId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_FichesEvaluationEncadreur_StagiaireId",
+                table: "FichesEvaluationEncadreur",
+                column: "StagiaireId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_FichesEvaluationStagiaire_EncadreurId",
@@ -906,6 +911,14 @@ namespace StageManager.Migrations
                 column: "EncadreurId",
                 principalTable: "Utilisateurs",
                 principalColumn: "Id");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_FichesEvaluationEncadreur_Utilisateurs_StagiaireId",
+                table: "FichesEvaluationEncadreur",
+                column: "StagiaireId",
+                principalTable: "Utilisateurs",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_FichesEvaluationStagiaire_Stages_StageId",

@@ -90,7 +90,7 @@ namespace StageManager.Controllers
             };
         }
 
-      
+
         // PUT: api/FichesPointages/5
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateFichePointage(int id, FichePointageUpdateDto fichePointageDto)
@@ -210,7 +210,7 @@ namespace StageManager.Controllers
         }
 
         // POST: api/FichesPointages/Validate
-        [HttpPost("Validate")]
+        [HttpPost("{id}/Validate")]
         public async Task<IActionResult> ValidateFichePointage(int id, FichePointageValidationDto validationDto)
         {
             var fichePointage = await _context.FichesDePointage.FindAsync(id);
@@ -220,12 +220,14 @@ namespace StageManager.Controllers
             }
 
             // Vérifier que la fiche de pointage a des données
-            if (string.IsNullOrEmpty(fichePointage.DonneesPointage))
+            if (string.IsNullOrEmpty(fichePointage.DonneesPointage) &&
+                !_context.PointageMois.Any(pm => pm.FicheDePointageId == id))
             {
                 return BadRequest("La fiche de pointage ne contient pas de données à valider");
             }
 
             fichePointage.EstValide = validationDto.EstValide;
+
             try
             {
                 await _context.SaveChangesAsync();

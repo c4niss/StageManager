@@ -15,6 +15,7 @@ using MimeKit;
 using MimeKit.Text;
 using System.Security.Cryptography;
 using System.Text;
+using System;
 
 namespace StageManager.Controllers
 {
@@ -61,6 +62,7 @@ namespace StageManager.Controllers
         [Authorize(Roles = "MembreDirection")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<StagiaireDto>> CreateStagiaire([FromBody] StagiaireCreateDto stagiaireDto)
         {
             if (!ModelState.IsValid)
@@ -99,21 +101,47 @@ namespace StageManager.Controllers
                 Role = UserRoles.Stagiaire
             };
 
-            _db.Stagiaires.Add(stagiaire);
-            await _db.SaveChangesAsync();
+            // Démarrer une transaction pour assurer l'atomicité
+            using var transaction = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                _db.Stagiaires.Add(stagiaire);
+                await _db.SaveChangesAsync();
 
-            await EnvoyerEmailAsync(
-                stagiaire.Email,
-                "Vos informations de connexion",
-                $"Bonjour {stagiaire.Prenom},\n\n" +
-                $"Votre compte a été créé avec succès.\n\n" +
-                $"Nom d'utilisateur: {stagiaire.Username}\n" +
-                $"Mot de passe: {generatedPassword}\n\n" +
-                $"Veuillez changer votre mot de passe après votre première connexion.\n\n" +
-                $"Cordialement,\nLe service des stages"
-            );
+                // Envoyer l'email après la création du compte
+                try
+                {
+                    await EnvoyerEmailAsync(
+                        stagiaire.Email,
+                        "Vos informations de connexion",
+                        $"Bonjour {stagiaire.Prenom},\n\n" +
+                        $"Votre compte a été créé avec succès.\n\n" +
+                        $"Nom d'utilisateur: {stagiaire.Username}\n" +
+                        $"Mot de passe: {generatedPassword}\n\n" +
+                        $"Veuillez changer votre mot de passe après votre première connexion.\n\n" +
+                        $"Cordialement,\nLe service des stages"
+                    );
 
-            return CreatedAtAction(nameof(GetStagiaire), new { id = stagiaire.Id }, stagiaire.ToDto());
+                    // Si l'email est envoyé avec succès, valider la transaction
+                    await transaction.CommitAsync();
+                }
+                catch (Exception ex)
+                {
+                    // Si l'envoi d'email échoue, annuler la transaction
+                    await transaction.RollbackAsync();
+                    return StatusCode(StatusCodes.Status500InternalServerError,
+                        $"Échec lors de l'envoi de l'email: {ex.Message}");
+                }
+
+                return CreatedAtAction(nameof(GetStagiaire), new { id = stagiaire.Id }, stagiaire.ToDto());
+            }
+            catch (Exception ex)
+            {
+                // Si une exception se produit lors de la création du compte, annuler la transaction
+                await transaction.RollbackAsync();
+                return StatusCode(StatusCodes.Status500InternalServerError,
+                    $"Échec lors de la création du compte: {ex.Message}");
+            }
         }
 
         private string GenerateRandomPassword(int length)
@@ -144,10 +172,18 @@ namespace StageManager.Controllers
             email.Body = new TextPart(TextFormat.Plain) { Text = corps };
 
             using var client = new MailKit.Net.Smtp.SmtpClient();
-            await client.ConnectAsync(_configuration["Email:Host"], int.Parse(_configuration["Email:Port"]), SecureSocketOptions.StartTls);
-            await client.AuthenticateAsync(_configuration["Email:Username"], _configuration["Email:Password"]);
-            await client.SendAsync(email);
-            await client.DisconnectAsync(true);
+            try
+            {
+                await client.ConnectAsync(_configuration["Email:Host"], int.Parse(_configuration["Email:Port"]), SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(_configuration["Email:Username"], _configuration["Email:Password"]);
+                await client.SendAsync(email);
+                await client.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                // Remonter l'exception pour annuler la transaction
+                throw new Exception($"Échec de l'envoi d'email: {ex.Message}", ex);
+            }
         }
 
         [HttpPut("{id}")]

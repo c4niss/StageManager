@@ -7,7 +7,7 @@ namespace StageManager.Models
     {
         public enum Statusconvention
         {
-            EnCours,
+            EnAttente,
             Accepte,
             Refuse
         }
@@ -18,7 +18,7 @@ namespace StageManager.Models
         public DateTime DateDepot { get; set; } = DateTime.Now;
 
         [Required]
-        public Statusconvention status { get; set; } = Statusconvention.EnCours;
+        public Statusconvention status { get; set; } = Statusconvention.EnAttente;
 
         [StringLength(255)]
         public string? CheminFichier { get; set; }

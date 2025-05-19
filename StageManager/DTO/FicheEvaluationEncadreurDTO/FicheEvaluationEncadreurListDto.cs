@@ -7,6 +7,7 @@
     public string NomPrenomStagiaireEvaluateur { get; set; }
     public int StagiaireId { get; set; }
     public int StageId { get; set; }
+    public bool EstValide { get; set; }
 
     // Score moyen (optionnel, pour afficher une évaluation globale dans la liste)
     public double ScoreMoyen { get; set; }

@@ -1,15 +1,20 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using StageManager.DTO.MembreDirectionDTO;
+﻿using StageManager.DTO.MembreDirectionDTO;
 using StageManager.Mapping;
 using StageManager.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using TestRestApi.Data;
+using MailKit.Security;
+using MimeKit;
+using MimeKit.Text;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace StageManager.Controllers
 {
@@ -18,13 +23,14 @@ namespace StageManager.Controllers
     public class MembreDirectionController : ControllerBase
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _configuration;
 
-        public MembreDirectionController(AppDbContext context)
+        public MembreDirectionController(AppDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
-        // GET: api/MembreDirection
         [HttpGet]
         public async Task<ActionResult<IEnumerable<MembreDirectionDto>>> GetMembresDirection()
         {
@@ -32,7 +38,6 @@ namespace StageManager.Controllers
             return membresDirection.Select(m => m.ToDto()).ToList();
         }
 
-        // GET: api/MembreDirection/5
         [HttpGet("{id}")]
         public async Task<ActionResult<MembreDirectionDto>> GetMembreDirection(int id)
         {
@@ -46,7 +51,6 @@ namespace StageManager.Controllers
             return membreDirection.ToDto();
         }
 
-        // POST: api/MembreDirection
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -56,6 +60,7 @@ namespace StageManager.Controllers
             {
                 return BadRequest(ModelState);
             }
+
             var existingusername = await _context.Utilisateurs
                 .FirstOrDefaultAsync(u => u.Username == membredirectiondto.Username);
             if (existingusername != null)
@@ -63,12 +68,12 @@ namespace StageManager.Controllers
                 return BadRequest("Le nom d'utilisateur existe déjà.");
             }
 
-            // Vérifier si l'email existe déjà
             if (await _context.MembresDirection.AnyAsync(m => m.Email == membredirectiondto.Email))
             {
                 return BadRequest($"Un membre de la direction avec l'email {membredirectiondto.Email} existe déjà.");
             }
 
+            string generatedPassword = GenerateRandomPassword(8);
             var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<MembreDirection>();
 
             var membreDirection = new MembreDirection
@@ -79,22 +84,94 @@ namespace StageManager.Controllers
                 Telephone = membredirectiondto.Telephone,
                 Fonction = membredirectiondto.Fonction,
                 Username = membredirectiondto.Username,
-                MotDePasse = passwordHasher.HashPassword(null, membredirectiondto.MotDePasse),
+                MotDePasse = passwordHasher.HashPassword(null, generatedPassword),
                 DatePrisePoste = DateTime.Now,
-                EstActif = false,
+                EstActif = true,
                 DemandesDeStage = new List<DemandeDeStage>(),
                 Role = UserRoles.MembreDirection
             };
 
-            _context.MembresDirection.Add(membreDirection);
-            await _context.SaveChangesAsync();
+            // Utilisation d'une transaction pour garantir l'atomicité
+            using (var transaction = await _context.Database.BeginTransactionAsync())
+            {
+                try
+                {
+                    // Ajouter le membre de direction à la base de données
+                    _context.MembresDirection.Add(membreDirection);
+                    await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetMembreDirection),
-                new { id = membreDirection.Id },
-                membreDirection.ToDto());
+                    // Envoyer l'email avec les informations de connexion
+                    await EnvoyerEmailAsync(
+                        membreDirection.Email,
+                        "Vos informations de connexion",
+                        $"Bonjour {membreDirection.Prenom},\n\n" +
+                        $"Votre compte a été créé avec succès.\n\n" +
+                        $"Nom d'utilisateur: {membreDirection.Username}\n" +
+                        $"Mot de passe: {generatedPassword}\n\n" +
+                        $"Veuillez changer votre mot de passe après votre première connexion.\n\n" +
+                        $"Cordialement,\nLe service des stages"
+                    );
+
+                    // Valider la transaction seulement si l'email a été envoyé avec succès
+                    await transaction.CommitAsync();
+
+                    return CreatedAtAction(nameof(GetMembreDirection),
+                        new { id = membreDirection.Id },
+                        membreDirection.ToDto());
+                }
+                catch (Exception ex)
+                {
+                    // En cas d'erreur, annuler la transaction
+                    await transaction.RollbackAsync();
+
+                    // Retourner une erreur détaillée
+                    return StatusCode(500, $"Une erreur est survenue lors de la création du compte ou de l'envoi de l'email: {ex.Message}");
+                }
+            }
         }
 
-        // PUT: api/MembreDirection/5
+        private string GenerateRandomPassword(int length)
+        {
+            const string validChars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz0123456789";
+            StringBuilder res = new StringBuilder();
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                byte[] uintBuffer = new byte[sizeof(uint)];
+
+                while (length-- > 0)
+                {
+                    rng.GetBytes(uintBuffer);
+                    uint num = BitConverter.ToUInt32(uintBuffer, 0);
+                    res.Append(validChars[(int)(num % (uint)validChars.Length)]);
+                }
+            }
+
+            return res.ToString();
+        }
+
+        private async Task EnvoyerEmailAsync(string destinataire, string sujet, string corps)
+        {
+            try
+            {
+                var email = new MimeMessage();
+                email.From.Add(new MailboxAddress("Service des Stages", _configuration["Email:From"]));
+                email.To.Add(new MailboxAddress("", destinataire));
+                email.Subject = sujet;
+                email.Body = new TextPart(TextFormat.Plain) { Text = corps };
+
+                using var client = new MailKit.Net.Smtp.SmtpClient();
+                await client.ConnectAsync(_configuration["Email:Host"], int.Parse(_configuration["Email:Port"]), SecureSocketOptions.StartTls);
+                await client.AuthenticateAsync(_configuration["Email:Username"], _configuration["Email:Password"]);
+                await client.SendAsync(email);
+                await client.DisconnectAsync(true);
+            }
+            catch (Exception ex)
+            {
+                // Rethrow l'exception pour qu'elle soit capturée par la transaction
+                throw new Exception($"Erreur lors de l'envoi de l'email: {ex.Message}", ex);
+            }
+        }
+
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateMembreDirection(int id, UpdateMembreDirectionDto updateDto)
         {
@@ -109,14 +186,12 @@ namespace StageManager.Controllers
                 return NotFound("Membre de la direction non trouvé");
             }
 
-            // Vérifier si l'email est déjà utilisé par un autre membre
             if (!string.IsNullOrEmpty(updateDto.Email) &&
                 await _context.MembresDirection.AnyAsync(m => m.Email == updateDto.Email && m.Id != id))
             {
                 return BadRequest("Cet email est déjà utilisé par un autre membre de la direction");
             }
 
-            // Update properties if provided
             if (!string.IsNullOrEmpty(updateDto.Nom))
                 membreDirection.Nom = updateDto.Nom;
 
@@ -154,7 +229,6 @@ namespace StageManager.Controllers
             return NoContent();
         }
 
-        // PATCH: api/MembreDirection/5/ToggleStatus
         [HttpPatch("{id}/ToggleStatus")]
         public async Task<IActionResult> ToggleStatus(int id)
         {
@@ -170,7 +244,6 @@ namespace StageManager.Controllers
             return NoContent();
         }
 
-        // DELETE: api/MembreDirection/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteMembreDirection(int id)
         {
@@ -186,7 +259,6 @@ namespace StageManager.Controllers
             return NoContent();
         }
 
-        // GET: api/MembreDirection/5/DemandesDeStage
         [HttpGet("{id}/DemandesDeStage")]
         public async Task<ActionResult<IEnumerable<DemandeDeStage>>> GetDemandesDeStage(int id)
         {
@@ -201,11 +273,10 @@ namespace StageManager.Controllers
 
             return Ok(demandes);
         }
-        // GET: api/MembreDirection/current
+
         [HttpGet("current")]
         public async Task<ActionResult<MembreDirectionDto>> GetCurrentMembreDirection()
         {
-            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
@@ -218,14 +289,12 @@ namespace StageManager.Controllers
             return membreDirection.ToDto();
         }
 
-        // PUT: api/MembreDirection/update-password
         [HttpPut("update-password")]
         public async Task<IActionResult> UpdatePassword([FromBody] UpdatePasswordModel model)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
@@ -235,19 +304,17 @@ namespace StageManager.Controllers
             if (membreDirection == null)
                 return NotFound("Membre de direction non trouvé");
 
-            // Vérifier que le mot de passe actuel est correct
             var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<MembreDirection>();
             var verificationResult = passwordHasher.VerifyHashedPassword(membreDirection, membreDirection.MotDePasse, model.CurrentPassword);
             if (verificationResult == Microsoft.AspNetCore.Identity.PasswordVerificationResult.Failed)
                 return BadRequest("Le mot de passe actuel est incorrect");
 
-            // Mettre à jour le mot de passe
             membreDirection.MotDePasse = passwordHasher.HashPassword(membreDirection, model.NewPassword);
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Mot de passe mis à jour avec succès" });
         }
-        // PUT: api/MembreDirection/update-membre-info
+
         [HttpPut("update-membre-info")]
         [Authorize(Roles = "MembreDirection")]
         public async Task<IActionResult> UpdateMembreInfo([FromBody] UpdateMembreInfoDto updateDto)
@@ -255,7 +322,6 @@ namespace StageManager.Controllers
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            // Récupérer l'ID de l'utilisateur connecté depuis le token JWT
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(userId) || !int.TryParse(userId, out int id))
@@ -265,14 +331,12 @@ namespace StageManager.Controllers
             if (membreDirection == null)
                 return NotFound("Membre de direction non trouvé");
 
-            // Vérifier si l'email est déjà utilisé par un autre membre
             if (!string.IsNullOrEmpty(updateDto.Email) &&
                 await _context.MembresDirection.AnyAsync(m => m.Email == updateDto.Email && m.Id != id))
             {
                 return BadRequest("Cet email est déjà utilisé par un autre membre de la direction");
             }
 
-            // Mettre à jour les propriétés si elles sont fournies
             if (!string.IsNullOrEmpty(updateDto.Email))
                 membreDirection.Email = updateDto.Email;
 

@@ -310,12 +310,6 @@ namespace StageManager.Controllers
         [HttpGet("Encadreur/{encadreurId}")]
         public async Task<ActionResult<IEnumerable<FicheEvaluationStagiaireListDto>>> GetFichesEvaluationByEncadreur(int encadreurId)
         {
-            // Vérifier que l'encadreur a le droit d'accéder à ces évaluations
-            if (User.IsInRole("Encadreur") && !User.HasClaim(c => c.Type == "UserId" && c.Value == encadreurId.ToString()))
-            {
-                return Forbid();
-            }
-
             var fichesEvaluation = await _context.FichesEvaluationStagiaire
                 .Where(f => f.EncadreurId == encadreurId)
                 .ToListAsync();

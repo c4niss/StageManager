@@ -17,6 +17,7 @@ namespace StageManager.Models
         public int Id { get; set; }
         [Required]
         public DateTime DateCreation { get; set; } = DateTime.Now;
+        public bool EstValide { get; set; }
         // Identification du stagiaire
         [Required]
         public string NomPrenomStagiaire { get; set; }

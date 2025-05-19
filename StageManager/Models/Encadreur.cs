@@ -16,9 +16,6 @@ namespace StageManager.Models
 
         [Required]
         public int NbrStagiaires { get; set; } = 0;
-
-        [Required]
-        public int StagiaireMax { get; set; } = 3;
         public int? AvenantId { get; set; }
         public Avenant Avenant { get; set; }
         [ForeignKey("Departement")]

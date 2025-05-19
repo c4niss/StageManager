@@ -99,9 +99,8 @@ namespace StageManager.Controllers
                 DepartementId = createDto.DepartementId,
                 DomaineId = createDto.DomaineId,
                 EstDisponible = true,
-                EstActif = false,
+                EstActif = true,
                 NbrStagiaires = 0,
-                StagiaireMax = 3,
                 Role = UserRoles.Encadreur
             };
 
@@ -144,8 +143,6 @@ namespace StageManager.Controllers
             if (updateDto.EstDisponible.HasValue)
                 encadreur.EstDisponible = updateDto.EstDisponible.Value;
 
-            if (updateDto.StagiaireMax.HasValue)
-                encadreur.StagiaireMax = updateDto.StagiaireMax.Value;
             if (updateDto.EstActif.HasValue)
                 encadreur.EstActif = updateDto.EstActif.Value;
             if (updateDto.DepartementId.HasValue)
@@ -203,7 +200,6 @@ namespace StageManager.Controllers
             var encadreurs = await _context.Encadreurs
                 .Include(e => e.Departement)
                 .Include(e => e.Domaine)
-                .Where(e => e.EstDisponible && e.NbrStagiaires < e.StagiaireMax)
                 .ToListAsync();
 
             return Ok(encadreurs.Select(e => e.ToDto()));
